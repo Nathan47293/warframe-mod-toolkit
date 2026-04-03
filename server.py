@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Warframe Mod Flip Tracker - Local Server
+Warframe Mod Toolkit - Local Server
 Serves the HTML app and proxies warframe.market API requests to avoid CORS issues.
 Double-click run_flipper.bat or run: python server.py
 """
@@ -85,7 +85,7 @@ def main():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     server = http.server.HTTPServer(('127.0.0.1', PORT), FlipperHandler)
-    print(f"Warframe Mod Flip Tracker running at http://localhost:{PORT}")
+    print(f"Warframe Mod Toolkit running at http://localhost:{PORT}")
     print("Press Ctrl+C to stop.\n")
 
     def open_browser():

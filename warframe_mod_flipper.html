@@ -3,34 +3,93 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Warframe Mod Flip Tracker</title>
+<title>Warframe Mod Toolkit</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   body {
     background: #0a0a14;
     color: #e0e0e0;
     font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
     min-height: 100vh;
+    display: flex;
   }
 
-  /* ── Header ── */
-  .header {
-    background: linear-gradient(135deg, #0d1117 0%, #161b26 100%);
-    border-bottom: 1px solid #1e2a3a;
-    padding: 18px 28px;
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
+    background: #0d1117;
+    border-right: 1px solid #1e2a3a;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
+    flex-direction: column;
+    height: 100vh;
+    position: sticky;
+    top: 0;
   }
-  .header-left { display: flex; flex-direction: column; gap: 4px; }
-  .header h1 {
-    font-size: 22px;
+  .sidebar-title {
+    padding: 20px 16px 12px;
+    font-size: 14px;
     font-weight: 700;
     color: #00e5ff;
     letter-spacing: 0.5px;
+  }
+  .sidebar-nav { display: flex; flex-direction: column; gap: 2px; padding: 0 8px; }
+  .nav-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #8899aa;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-item:hover { background: #161b26; color: #c0d0e0; }
+  .nav-item.active { background: #1a2744; color: #00e5ff; font-weight: 600; }
+  .nav-icon { font-size: 16px; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px;
+    border-top: 1px solid #1e2a3a;
+  }
+  .sidebar-status {
+    font-size: 11px;
+    color: #667788;
+    margin-bottom: 8px;
+  }
+  .sidebar-status span { color: #00e5ff; }
+  .fetch-btn {
+    background: linear-gradient(135deg, #00b4d8, #0077b6);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .fetch-btn:hover { background: linear-gradient(135deg, #00e5ff, #0096c7); }
+  .fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Main Content ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Tab Header ── */
+  .tab-header {
+    background: linear-gradient(135deg, #0d1117 0%, #161b26 100%);
+    border-bottom: 1px solid #1e2a3a;
+    padding: 14px 28px;
+  }
+  .tab-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #e0e0e0;
+    margin-bottom: 4px;
   }
   .formula-text {
     font-size: 11px;
@@ -38,167 +97,86 @@
     font-family: 'Consolas', 'Courier New', monospace;
   }
   .formula-text span { color: #8899aa; }
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .status-text {
-    font-size: 13px;
-    color: #8899aa;
-  }
-  .status-text span { color: #00e5ff; }
-  .fetch-btn {
-    background: linear-gradient(135deg, #00b4d8, #0077b6);
-    color: #fff;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .fetch-btn:hover { background: linear-gradient(135deg, #00e5ff, #0096c7); transform: translateY(-1px); }
-  .fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
   /* ── Progress Bar ── */
   .progress-container {
     background: #0d1117;
-    padding: 0;
-    height: 0;
-    overflow: hidden;
+    padding: 0; height: 0; overflow: hidden;
     transition: height 0.3s, padding 0.3s;
   }
-  .progress-container.active {
-    height: auto;
-    padding: 12px 28px;
-  }
-  .progress-bar-bg {
-    background: #1a2332;
-    border-radius: 4px;
-    height: 8px;
-    overflow: hidden;
-  }
+  .progress-container.active { height: auto; padding: 12px 28px; }
+  .progress-bar-bg { background: #1a2332; border-radius: 4px; height: 8px; overflow: hidden; }
   .progress-bar-fill {
     background: linear-gradient(90deg, #00b4d8, #00e5ff);
-    height: 100%;
-    width: 0%;
-    transition: width 0.3s;
-    border-radius: 4px;
+    height: 100%; width: 0%; transition: width 0.3s; border-radius: 4px;
   }
-  .progress-text {
-    font-size: 12px;
-    color: #8899aa;
-    margin-top: 6px;
-  }
+  .progress-text { font-size: 12px; color: #8899aa; margin-top: 6px; }
 
   /* ── Filters ── */
   .filters {
     background: #0d1117;
     border-bottom: 1px solid #1e2a3a;
     padding: 14px 28px;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 14px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 14px;
   }
-  .filter-group {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
   .filter-group label {
-    font-size: 12px;
-    color: #8899aa;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
+    font-size: 12px; color: #8899aa; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
   }
   .filter-group input[type="text"],
   .filter-group input[type="number"] {
-    background: #1a2332;
-    border: 1px solid #2a3a4a;
-    color: #e0e0e0;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 13px;
-    width: 90px;
+    background: #1a2332; border: 1px solid #2a3a4a; color: #e0e0e0;
+    padding: 5px 10px; border-radius: 4px; font-size: 13px; width: 90px;
   }
   .filter-group input[type="text"] { width: 180px; }
   .filter-group input:focus { outline: none; border-color: #00b4d8; }
 
-  .type-filters {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-  .type-chip {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    user-select: none;
-  }
+  .type-filters { display: flex; gap: 10px; align-items: center; }
+  .type-chip { display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
   .type-chip input[type="checkbox"] { display: none; }
   .type-chip .chip {
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 1px solid #2a3a4a;
-    transition: all 0.2s;
+    padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;
+    border: 1px solid #2a3a4a; transition: all 0.2s;
   }
   .type-chip input:checked + .chip { border-color: transparent; }
   .type-chip.archon input:checked + .chip { background: #7c3aed; color: #fff; }
   .type-chip.galvanized input:checked + .chip { background: #d97706; color: #fff; }
   .type-chip.primed input:checked + .chip { background: #0ea5e9; color: #fff; }
   .type-chip.regular input:checked + .chip { background: #4b5563; color: #fff; }
+  .type-chip.primed-archon input:checked + .chip { background: #7c3aed; color: #fff; }
+  .type-chip.galv-gold input:checked + .chip { background: #d97706; color: #fff; }
+  .type-chip.silver input:checked + .chip { background: #94a3b8; color: #0a0a14; }
+  .type-chip.bronze input:checked + .chip { background: #b45309; color: #fff; }
   .type-chip input:not(:checked) + .chip { color: #667; }
 
-  .filter-sep {
-    width: 1px;
-    height: 24px;
-    background: #2a3a4a;
-  }
-
-  .result-count {
-    font-size: 12px;
-    color: #8899aa;
-    margin-left: auto;
-  }
+  .filter-sep { width: 1px; height: 24px; background: #2a3a4a; }
+  .result-count { font-size: 12px; color: #8899aa; margin-left: auto; }
   .result-count span { color: #00e5ff; font-weight: 700; }
 
+  /* ── Endo Info Bar ── */
+  .endo-info {
+    background: #0d1117;
+    border-bottom: 1px solid #1e2a3a;
+    padding: 10px 28px;
+    display: flex; gap: 24px; flex-wrap: wrap;
+  }
+  .endo-tier {
+    font-size: 12px; color: #8899aa;
+    font-family: 'Consolas', 'Courier New', monospace;
+  }
+  .endo-tier .tier-name { font-weight: 700; }
+  .endo-tier .tier-val { color: #00e5ff; }
+
   /* ── Table ── */
-  .table-wrapper {
-    overflow-x: auto;
-    padding: 0 16px 20px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 8px;
-    font-size: 13px;
-  }
+  .table-wrapper { overflow: auto; flex: 1; padding: 0 16px 20px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
   thead th {
-    background: #131a27;
-    color: #8899aa;
-    font-weight: 700;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 10px 12px;
-    text-align: left;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-    border-bottom: 2px solid #1e2a3a;
-    transition: color 0.2s;
+    background: #131a27; color: #8899aa; font-weight: 700; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px;
+    text-align: left; position: sticky; top: 0; z-index: 10;
+    cursor: pointer; user-select: none; white-space: nowrap;
+    border-bottom: 2px solid #1e2a3a; transition: color 0.2s;
   }
   thead th:hover { color: #00e5ff; }
   thead th.sorted-asc::after { content: ' \25B2'; color: #00e5ff; }
@@ -206,58 +184,43 @@
   thead th.no-sort { cursor: default; }
   thead th.no-sort:hover { color: #8899aa; }
 
-  tbody tr {
-    border-bottom: 1px solid #141c28;
-    transition: background 0.15s;
-  }
+  tbody tr { border-bottom: 1px solid #141c28; transition: background 0.15s; }
   tbody tr:hover { background: #131a27; }
-  tbody td {
-    padding: 8px 12px;
-    vertical-align: middle;
-  }
+  tbody td { padding: 8px 12px; vertical-align: middle; }
 
   .num { text-align: right; font-variant-numeric: tabular-nums; }
   .rank-col { color: #556; width: 50px; }
 
-  /* Type badges */
-  .type-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
-  }
+  .type-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
   .type-archon { background: #7c3aed22; color: #a78bfa; border: 1px solid #7c3aed44; }
   .type-galvanized { background: #d9770622; color: #fbbf24; border: 1px solid #d9770644; }
   .type-primed { background: #0ea5e922; color: #38bdf8; border: 1px solid #0ea5e944; }
   .type-regular { background: #4b556322; color: #9ca3af; border: 1px solid #4b556344; }
+  .type-gold { background: #d9770622; color: #fbbf24; border: 1px solid #d9770644; }
+  .type-silver { background: #94a3b822; color: #cbd5e1; border: 1px solid #94a3b844; }
+  .type-bronze { background: #b4530922; color: #f59e0b; border: 1px solid #b4530944; }
 
-  /* Profit coloring */
   .profit-high { color: #4ade80; font-weight: 600; }
   .profit-mid { color: #fbbf24; }
   .profit-low { color: #f87171; }
-
   .opp-high { color: #4ade80; font-weight: 600; }
   .opp-mid { color: #fbbf24; }
   .opp-low { color: #f87171; }
+  .endo-high { color: #4ade80; font-weight: 600; }
+  .endo-mid { color: #fbbf24; }
+  .endo-low { color: #f87171; }
 
-  .mod-link {
-    color: #0ea5e9;
-    text-decoration: none;
-    font-size: 12px;
-  }
+  .mod-link { color: #0ea5e9; text-decoration: none; font-size: 12px; }
   .mod-link:hover { text-decoration: underline; color: #38bdf8; }
+  .price-source { font-size: 10px; color: #556; margin-left: 4px; }
 
-  /* ── Empty State ── */
-  .empty-state {
-    text-align: center;
-    padding: 80px 20px;
-    color: #556;
-  }
+  .empty-state { text-align: center; padding: 80px 20px; color: #556; }
   .empty-state h2 { color: #667; font-size: 18px; margin-bottom: 8px; }
   .empty-state p { font-size: 14px; }
 
-  /* ── Scrollbar ── */
+  .tab-content { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+  .tab-content.active { display: flex; }
+
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: #0a0a14; }
   ::-webkit-scrollbar-thumb { background: #2a3a4a; border-radius: 4px; }
@@ -266,9 +229,37 @@
 </head>
 <body>
 
-<div class="header">
-  <div class="header-left">
-    <h1>Warframe Mod Flip Tracker</h1>
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-title">WF Mod Toolkit</div>
+  <div class="sidebar-nav">
+    <div class="nav-item active" onclick="switchTab('flip')" id="navFlip">
+      <span class="nav-icon">&#9650;</span> Mod Flipper
+    </div>
+    <div class="nav-item" onclick="switchTab('endo')" id="navEndo">
+      <span class="nav-icon">&#9881;</span> Endo Dissolve
+    </div>
+  </div>
+  <div style="padding: 12px 8px;">
+    <button class="fetch-btn" id="fetchBtn" onclick="startFetch()">&#8635; Fetch Data</button>
+  </div>
+  <div class="sidebar-footer">
+    <div class="sidebar-status" id="statusText">No data loaded</div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+
+<div class="progress-container" id="progressContainer">
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText"></div>
+</div>
+
+<!-- ═══════ FLIP TAB ═══════ -->
+<div class="tab-content active" id="tabFlip">
+  <div class="tab-header">
+    <h2>Mod Flipper</h2>
     <div class="formula-text">
       <span>Flip Profit</span> = Sell SMA - Buy SMA &nbsp;&nbsp;|&nbsp;&nbsp;
       <span>Opp Score</span> = Flip Profit &times; ln(R10 Volume + 1)
@@ -277,70 +268,30 @@
       <span>Opp Color:</span> &ge;300 green, &ge;250 yellow, &lt;250 red
     </div>
   </div>
-  <div class="header-right">
-    <div class="status-text" id="statusText">No data loaded</div>
-    <button class="fetch-btn" id="fetchBtn" onclick="startFetch()">Fetch Data</button>
+  <div class="filters" id="flipFilters">
+    <div class="filter-group">
+      <label>Search</label>
+      <input type="text" id="flipFilterName" placeholder="Mod name..." oninput="applyFlipFilters()">
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group type-filters">
+      <label>Type</label>
+      <label class="type-chip archon"><input type="checkbox" checked onchange="applyFlipFilters()"><span class="chip">Archon</span></label>
+      <label class="type-chip galvanized"><input type="checkbox" checked onchange="applyFlipFilters()"><span class="chip">Galvanized</span></label>
+      <label class="type-chip primed"><input type="checkbox" checked onchange="applyFlipFilters()"><span class="chip">Primed</span></label>
+      <label class="type-chip regular"><input type="checkbox" checked onchange="applyFlipFilters()"><span class="chip">Regular</span></label>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group"><label>Min Profit</label><input type="number" id="flipMinProfit" placeholder="0" oninput="applyFlipFilters()"></div>
+    <div class="filter-group"><label>Min Opp Score</label><input type="number" id="flipMinOpp" placeholder="0" oninput="applyFlipFilters()"></div>
+    <div class="filter-group"><label>Min Sell Price</label><input type="number" id="flipMinSell" placeholder="0" oninput="applyFlipFilters()"></div>
+    <div class="filter-group"><label>Min Volume</label><input type="number" id="flipMinVol" placeholder="0" oninput="applyFlipFilters()"></div>
+    <div class="result-count" id="flipResultCount"></div>
   </div>
-</div>
-
-<div class="progress-container" id="progressContainer">
-  <div class="progress-bar-bg">
-    <div class="progress-bar-fill" id="progressFill"></div>
-  </div>
-  <div class="progress-text" id="progressText"></div>
-</div>
-
-<div class="filters" id="filtersBar">
-  <div class="filter-group">
-    <label>Search</label>
-    <input type="text" id="filterName" placeholder="Mod name..." oninput="applyFilters()">
-  </div>
-
-  <div class="filter-sep"></div>
-
-  <div class="filter-group type-filters">
-    <label>Type</label>
-    <label class="type-chip archon">
-      <input type="checkbox" checked onchange="applyFilters()"><span class="chip">Archon</span>
-    </label>
-    <label class="type-chip galvanized">
-      <input type="checkbox" checked onchange="applyFilters()"><span class="chip">Galvanized</span>
-    </label>
-    <label class="type-chip primed">
-      <input type="checkbox" checked onchange="applyFilters()"><span class="chip">Primed</span>
-    </label>
-    <label class="type-chip regular">
-      <input type="checkbox" checked onchange="applyFilters()"><span class="chip">Regular</span>
-    </label>
-  </div>
-
-  <div class="filter-sep"></div>
-
-  <div class="filter-group">
-    <label>Min Profit</label>
-    <input type="number" id="filterMinProfit" placeholder="0" oninput="applyFilters()">
-  </div>
-  <div class="filter-group">
-    <label>Min Opp Score</label>
-    <input type="number" id="filterMinOpp" placeholder="0" oninput="applyFilters()">
-  </div>
-  <div class="filter-group">
-    <label>Min Sell Price</label>
-    <input type="number" id="filterMinSell" placeholder="0" oninput="applyFilters()">
-  </div>
-  <div class="filter-group">
-    <label>Min Volume</label>
-    <input type="number" id="filterMinVol" placeholder="0" oninput="applyFilters()">
-  </div>
-
-  <div class="result-count" id="resultCount"></div>
-</div>
-
-<div class="table-wrapper">
-  <table id="modTable">
-    <thead>
-      <tr>
-        <th data-col="rank" class="sorted-asc">#</th>
+  <div class="table-wrapper">
+    <table>
+      <thead id="flipThead"><tr>
+        <th data-col="rank">#</th>
         <th data-col="name">Mod Name</th>
         <th data-col="type">Type</th>
         <th data-col="buyPrice" class="num">Buy (R0)</th>
@@ -349,26 +300,107 @@
         <th data-col="oppScore" class="num">Opp Score</th>
         <th data-col="maxVol" class="num">R10 Volume</th>
         <th data-col="link" class="no-sort">Link</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
-  <div class="empty-state" id="emptyState">
-    <h2>No data yet</h2>
-    <p>Click "Fetch Data" to pull live prices from warframe.market</p>
+      </tr></thead>
+      <tbody id="flipBody"></tbody>
+    </table>
+    <div class="empty-state" id="flipEmpty">
+      <h2>No data yet</h2><p>Click "Fetch Data" to pull live prices from warframe.market</p>
+    </div>
   </div>
 </div>
 
-<script>
-// ── State ──
-let allMods = [];
-let filteredMods = [];
-let sortCol = 'oppScore';
-let sortDir = 'desc';
-let isFetching = false;
+<!-- ═══════ ENDO TAB ═══════ -->
+<div class="tab-content" id="tabEndo">
+  <div class="tab-header">
+    <h2>Endo Dissolve Calculator</h2>
+    <div class="formula-text">
+      <span>Endo/Plat</span> = Endo Return &divide; R10 Price &nbsp;&nbsp;|&nbsp;&nbsp;
+      <span>Price:</span> 48hr SMA if available, otherwise cheapest R10 sell listing
+    </div>
+  </div>
+  <div class="endo-info">
+    <div class="endo-tier"><span class="tier-name">Primed / Archon:</span> <span class="tier-val">30,710</span> endo</div>
+    <div class="endo-tier"><span class="tier-name">Galvanized / Gold:</span> <span class="tier-val">23,033</span> endo</div>
+    <div class="endo-tier"><span class="tier-name">Silver:</span> <span class="tier-val">15,355</span> endo</div>
+    <div class="endo-tier"><span class="tier-name">Bronze:</span> <span class="tier-val">7,678</span> endo</div>
+  </div>
+  <div class="filters" id="endoFilters">
+    <div class="filter-group">
+      <label>Search</label>
+      <input type="text" id="endoFilterName" placeholder="Mod name..." oninput="applyEndoFilters()">
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group type-filters">
+      <label>Type</label>
+      <label class="type-chip primed-archon"><input type="checkbox" checked onchange="applyEndoFilters()"><span class="chip">Primed/Archon</span></label>
+      <label class="type-chip galv-gold"><input type="checkbox" checked onchange="applyEndoFilters()"><span class="chip">Galv/Gold</span></label>
+      <label class="type-chip silver"><input type="checkbox" checked onchange="applyEndoFilters()"><span class="chip">Silver</span></label>
+      <label class="type-chip bronze"><input type="checkbox" checked onchange="applyEndoFilters()"><span class="chip">Bronze</span></label>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group"><label>Min Endo/Plat</label><input type="number" id="endoMinRatio" placeholder="0" oninput="applyEndoFilters()"></div>
+    <div class="filter-group"><label>Min Volume</label><input type="number" id="endoMinVol" placeholder="0" oninput="applyEndoFilters()"></div>
+    <div class="result-count" id="endoResultCount"></div>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead id="endoThead"><tr>
+        <th data-col="rank">#</th>
+        <th data-col="name">Mod Name</th>
+        <th data-col="endoTier">Tier</th>
+        <th data-col="endoReturn" class="num">Endo Return</th>
+        <th data-col="r10Price" class="num">R10 Price</th>
+        <th data-col="endoPerPlat" class="num">Endo/Plat</th>
+        <th data-col="maxVol" class="num">R10 Volume</th>
+        <th data-col="priceSource">Source</th>
+        <th data-col="link" class="no-sort">Link</th>
+      </tr></thead>
+      <tbody id="endoBody"></tbody>
+    </table>
+    <div class="empty-state" id="endoEmpty">
+      <h2>No data yet</h2><p>Click "Fetch Data" to pull live prices from warframe.market</p>
+    </div>
+  </div>
+</div>
 
-// ── Mod type classification ──
-function classifyMod(name) {
+</div><!-- end main -->
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let flipMods = [];
+let endoMods = [];
+let flipFiltered = [];
+let endoFiltered = [];
+let flipSort = { col: 'oppScore', dir: 'desc' };
+let endoSort = { col: 'endoPerPlat', dir: 'desc' };
+let isFetching = false;
+let activeTab = 'flip';
+
+// Endo return values per tier
+const ENDO_VALUES = {
+  'Primed/Archon': 30710,
+  'Galv/Gold': 23033,
+  'Silver': 15355,
+  'Bronze': 7678
+};
+
+// ═══════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(tab === 'flip' ? 'tabFlip' : 'tabEndo').classList.add('active');
+  document.getElementById(tab === 'flip' ? 'navFlip' : 'navEndo').classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// CLASSIFICATION
+// ═══════════════════════════════════════════
+function classifyFlipType(name) {
   const n = name.toLowerCase();
   if (n.startsWith('archon ')) return 'Archon';
   if (n.startsWith('galvanized ')) return 'Galvanized';
@@ -376,13 +408,23 @@ function classifyMod(name) {
   return 'Regular';
 }
 
-// ── API Fetch with retry logic ──
+function classifyEndoTier(name, tags) {
+  const n = name.toLowerCase();
+  if (n.startsWith('primed ') || n.startsWith('archon ') || tags.includes('legendary') || tags.includes('archon')) return 'Primed/Archon';
+  if (n.startsWith('galvanized ') || tags.includes('rare')) return 'Galv/Gold';
+  if (tags.includes('uncommon')) return 'Silver';
+  if (tags.includes('common')) return 'Bronze';
+  return 'Galv/Gold'; // fallback for unknown rarity
+}
+
+// ═══════════════════════════════════════════
+// API FETCH
+// ═══════════════════════════════════════════
 async function fetchWithRetry(url, maxRetries = 3) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const resp = await fetch(url);
     if (resp.status === 429) {
-      const waitMs = 2000 * Math.pow(2, attempt);
-      await new Promise(r => setTimeout(r, waitMs));
+      await new Promise(r => setTimeout(r, 2000 * Math.pow(2, attempt)));
       continue;
     }
     return resp;
@@ -404,7 +446,6 @@ async function startFetch() {
     const itemsJson = await itemsResp.json();
     const items = itemsJson.data || [];
 
-    // Filter to rank 10 mods only (excluding rivens)
     const mods = items.filter(item => {
       const tags = item.tags || [];
       if (tags.includes('riven_mod')) return false;
@@ -414,15 +455,15 @@ async function startFetch() {
 
     updateProgress(5, `Found ${mods.length} rank-10 mods. Fetching stats...`);
 
-    const results = [];
+    // Phase 1: Fetch stats for all mods
+    const rawResults = [];
     let completed = 0;
     let errors = 0;
     const total = mods.length;
-
     const WORKERS = 3;
     const DELAY = 500;
 
-    async function worker(modList) {
+    async function statsWorker(modList) {
       for (const mod of modList) {
         try {
           const resp = await fetchWithRetry(`/api/v1/items/${mod.slug}/statistics`);
@@ -431,44 +472,37 @@ async function startFetch() {
           const stats48 = json.payload?.statistics_closed?.['48hours'] || [];
 
           let r0_sma = null, rM_sma = null, r0_vol = 0, rM_vol = 0;
-          const maxRank = mod.maxRank;
-
+          let r0_fallback = null, rM_fallback = null;
           for (const entry of stats48) {
             if (entry.mod_rank === 0) {
-              r0_sma = entry.moving_avg;
+              if (entry.moving_avg != null) r0_sma = entry.moving_avg;
+              else if (entry.wa_price != null) r0_fallback = entry.wa_price;
+              else if (entry.avg_price != null) r0_fallback = entry.avg_price;
               r0_vol += entry.volume || 0;
-            } else if (entry.mod_rank === maxRank) {
-              rM_sma = entry.moving_avg;
+            } else if (entry.mod_rank === 10) {
+              if (entry.moving_avg != null) rM_sma = entry.moving_avg;
+              else if (entry.wa_price != null) rM_fallback = entry.wa_price;
+              else if (entry.avg_price != null) rM_fallback = entry.avg_price;
               rM_vol += entry.volume || 0;
             }
           }
-
-          let flipProfit = null;
-          let oppScore = null;
-          if (r0_sma != null && rM_sma != null) {
-            flipProfit = Math.round((rM_sma - r0_sma) * 10) / 10;
-            if (r0_sma > 0) {
-              oppScore = Math.round(flipProfit * Math.log(rM_vol + 1) * 10) / 10;
-            }
-          }
+          // Use fallback prices when SMA isn't available
+          if (r0_sma == null && r0_fallback != null) r0_sma = r0_fallback;
+          if (rM_sma == null && rM_fallback != null) rM_sma = rM_fallback;
 
           const modName = mod.i18n?.en?.name || mod.slug;
-          results.push({
+          rawResults.push({
             name: modName,
             slug: mod.slug,
-            type: classifyMod(modName),
-            buyPrice: r0_sma,
-            sellPrice: rM_sma,
-            flipProfit,
-            oppScore,
-            maxVol: rM_vol
+            tags: mod.tags || [],
+            r0_sma, rM_sma, r0_vol, rM_vol,
+            r0_hasSMA: r0_sma !== r0_fallback || r0_fallback == null,
+            rM_hasSMA: rM_sma !== rM_fallback || rM_fallback == null
           });
-        } catch (e) {
-          errors++;
-        }
+        } catch (e) { errors++; }
         completed++;
         if (completed % 10 === 0 || completed === total) {
-          const pct = 5 + (completed / total) * 95;
+          const pct = 5 + (completed / total) * 85;
           updateProgress(pct, `Fetched ${completed}/${total} mods (${errors} errors)`);
         }
         await new Promise(r => setTimeout(r, DELAY));
@@ -478,25 +512,107 @@ async function startFetch() {
     const chunks = [];
     for (let i = 0; i < WORKERS; i++) chunks.push([]);
     mods.forEach((mod, idx) => chunks[idx % WORKERS].push(mod));
+    await Promise.all(chunks.map(chunk => statsWorker(chunk)));
 
-    await Promise.all(chunks.map(chunk => worker(chunk)));
+    // Phase 2: For endo tab, fetch orders for mods without R10 SMA
+    const needOrders = rawResults.filter(m => m.rM_sma == null);
+    updateProgress(92, `Fetching listings for ${needOrders.length} mods without SMA...`);
 
-    // Only mods with both R0 and max rank prices (flippable)
-    allMods = results.filter(m => m.buyPrice != null && m.sellPrice != null);
-    allMods.sort((a, b) => (b.oppScore || -9999) - (a.oppScore || -9999));
+    let ordersCompleted = 0;
+    const orderResults = new Map();
 
+    async function ordersWorker(modList) {
+      for (const mod of modList) {
+        try {
+          const resp = await fetchWithRetry(`/api/v1/items/${mod.slug}/orders`);
+          if (resp.ok) {
+            const json = await resp.json();
+            const orders = json.payload?.orders || [];
+            const sellOrders = orders.filter(o =>
+              o.order_type === 'sell' &&
+              o.mod_rank === 10 &&
+              (o.user?.status === 'ingame' || o.user?.status === 'online')
+            );
+            if (sellOrders.length > 0) {
+              const minPrice = Math.min(...sellOrders.map(o => o.platinum));
+              orderResults.set(mod.slug, minPrice);
+            }
+          }
+        } catch (e) {}
+        ordersCompleted++;
+        if (ordersCompleted % 5 === 0 || ordersCompleted === needOrders.length) {
+          updateProgress(92 + (ordersCompleted / Math.max(needOrders.length, 1)) * 6,
+            `Fetching listings ${ordersCompleted}/${needOrders.length}...`);
+        }
+        await new Promise(r => setTimeout(r, DELAY));
+      }
+    }
+
+    if (needOrders.length > 0) {
+      const oChunks = [];
+      for (let i = 0; i < WORKERS; i++) oChunks.push([]);
+      needOrders.forEach((mod, idx) => oChunks[idx % WORKERS].push(mod));
+      await Promise.all(oChunks.map(chunk => ordersWorker(chunk)));
+    }
+
+    // Phase 3: Build flip mods and endo mods
+    const newFlipMods = [];
+    const newEndoMods = [];
+
+    for (const m of rawResults) {
+      const flipType = classifyFlipType(m.name);
+      const endoTier = classifyEndoTier(m.name, m.tags);
+      const endoReturn = ENDO_VALUES[endoTier] || 0;
+
+      // Flip tab: needs both R0 and R10 SMA
+      if (m.r0_sma != null && m.rM_sma != null) {
+        const flipProfit = Math.round((m.rM_sma - m.r0_sma) * 10) / 10;
+        const oppScore = m.r0_sma > 0 ? Math.round(flipProfit * Math.log(m.rM_vol + 1) * 10) / 10 : null;
+        newFlipMods.push({
+          name: m.name, slug: m.slug, type: flipType,
+          buyPrice: m.r0_sma, sellPrice: m.rM_sma,
+          flipProfit, oppScore, maxVol: m.rM_vol
+        });
+      }
+
+      // Endo tab: needs R10 price (SMA or fallback)
+      let r10Price = m.rM_sma;
+      let priceSource = m.rM_hasSMA ? 'SMA' : 'Avg';
+      if (r10Price == null && orderResults.has(m.slug)) {
+        r10Price = orderResults.get(m.slug);
+        priceSource = 'Listing';
+      }
+      if (r10Price != null && r10Price > 0) {
+        newEndoMods.push({
+          name: m.name, slug: m.slug,
+          endoTier, endoReturn,
+          r10Price, priceSource,
+          endoPerPlat: Math.round((endoReturn / r10Price) * 10) / 10,
+          maxVol: m.rM_vol
+        });
+      }
+    }
+
+    flipMods = newFlipMods;
+    endoMods = newEndoMods;
+    flipMods.sort((a, b) => (b.oppScore || -9999) - (a.oppScore || -9999));
+    endoMods.sort((a, b) => (b.endoPerPlat || 0) - (a.endoPerPlat || 0));
+
+    // Cache
     const now = new Date();
-    const cacheData = { mods: allMods, fetchedAt: now.toISOString() };
-    try { localStorage.setItem('wf_mod_flip_cache', JSON.stringify(cacheData)); } catch(e) {}
+    const cacheData = { flipMods, endoMods, fetchedAt: now.toISOString() };
+    try { localStorage.setItem('wf_mod_cache_v2', JSON.stringify(cacheData)); } catch(e) {}
 
     updateStatus(now);
-    updateProgress(100, `Done! ${allMods.length} mods with price data (${errors} API errors)`);
+    updateProgress(100, `Done! ${flipMods.length} flip mods, ${endoMods.length} endo mods (${errors} errors)`);
     setTimeout(() => showProgress(false), 2000);
 
-    sortCol = 'oppScore';
-    sortDir = 'desc';
-    updateSortHeaders();
-    applyFilters();
+    flipSort = { col: 'oppScore', dir: 'desc' };
+    endoSort = { col: 'endoPerPlat', dir: 'desc' };
+    applyFlipFilters();
+    applyEndoFilters();
+    updateSortHeaders('flip');
+    updateSortHeaders('endo');
 
   } catch (err) {
     updateProgress(0, `Error: ${err.message}`);
@@ -508,7 +624,9 @@ async function startFetch() {
   btn.textContent = 'Fetch Data';
 }
 
-// ── Progress UI ──
+// ═══════════════════════════════════════════
+// PROGRESS & STATUS
+// ═══════════════════════════════════════════
 function showProgress(show) {
   document.getElementById('progressContainer').classList.toggle('active', show);
 }
@@ -518,104 +636,109 @@ function updateProgress(pct, text) {
 }
 function updateStatus(date) {
   const d = date instanceof Date ? date : new Date(date);
-  const timeStr = d.toLocaleString();
-  document.getElementById('statusText').innerHTML = `Last fetched: <span>${timeStr}</span> &middot; <span>${allMods.length}</span> mods`;
+  document.getElementById('statusText').innerHTML =
+    `Last fetched:<br><span>${d.toLocaleString()}</span><br><span>${flipMods.length}</span> flip | <span>${endoMods.length}</span> endo`;
 }
 
-// ── Sort ──
-function updateSortHeaders() {
-  document.querySelectorAll('thead th').forEach(th => {
+// ═══════════════════════════════════════════
+// SORT (generic for both tabs)
+// ═══════════════════════════════════════════
+function getSort(tab) { return tab === 'flip' ? flipSort : endoSort; }
+
+function updateSortHeaders(tab) {
+  const thead = document.getElementById(tab === 'flip' ? 'flipThead' : 'endoThead');
+  const sort = getSort(tab);
+  thead.querySelectorAll('th').forEach(th => {
     th.classList.remove('sorted-asc', 'sorted-desc');
-    if (sortDir !== 'none' && th.dataset.col === sortCol) {
-      th.classList.add(sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+    if (sort.dir !== 'none' && th.dataset.col === sort.col) {
+      th.classList.add(sort.dir === 'asc' ? 'sorted-asc' : 'sorted-desc');
     }
   });
 }
 
-document.querySelectorAll('thead th').forEach(th => {
-  th.addEventListener('click', () => {
-    if (th.classList.contains('no-sort')) return;
-    const col = th.dataset.col;
-    if (sortCol === col) {
-      // Cycle: desc → asc → none → desc
-      sortDir = sortDir === 'desc' ? 'asc' : sortDir === 'asc' ? 'none' : 'desc';
-    } else {
-      sortCol = col;
-      sortDir = (col === 'name' || col === 'type') ? 'asc' : 'desc';
-    }
-    updateSortHeaders();
-    applyFilters();
-  });
-});
-
-function sortMods(mods) {
-  if (sortDir === 'none') return [...mods];
-  return [...mods].sort((a, b) => {
-    let va = a[sortCol], vb = b[sortCol];
-    if (va == null) va = sortDir === 'asc' ? Infinity : -Infinity;
-    if (vb == null) vb = sortDir === 'asc' ? Infinity : -Infinity;
+function sortData(data, sort) {
+  if (sort.dir === 'none') return [...data];
+  return [...data].sort((a, b) => {
+    let va = a[sort.col], vb = b[sort.col];
+    if (va == null) va = sort.dir === 'asc' ? Infinity : -Infinity;
+    if (vb == null) vb = sort.dir === 'asc' ? Infinity : -Infinity;
     if (typeof va === 'string') {
       const cmp = va.localeCompare(vb);
-      return sortDir === 'asc' ? cmp : -cmp;
+      return sort.dir === 'asc' ? cmp : -cmp;
     }
-    return sortDir === 'asc' ? va - vb : vb - va;
+    return sort.dir === 'asc' ? va - vb : vb - va;
   });
 }
 
-// ── Filter ──
-function applyFilters() {
-  const nameFilter = document.getElementById('filterName').value.toLowerCase();
-  const minProfit = parseFloat(document.getElementById('filterMinProfit').value) || null;
-  const minOpp = parseFloat(document.getElementById('filterMinOpp').value) || null;
-  const minSell = parseFloat(document.getElementById('filterMinSell').value) || null;
-  const minVol = parseFloat(document.getElementById('filterMinVol').value) || null;
+// Attach sort handlers
+function attachSortHandlers(theadId, tab) {
+  document.getElementById(theadId).querySelectorAll('th').forEach(th => {
+    th.addEventListener('click', () => {
+      if (th.classList.contains('no-sort')) return;
+      const sort = getSort(tab);
+      const col = th.dataset.col;
+      if (sort.col === col) {
+        sort.dir = sort.dir === 'desc' ? 'asc' : sort.dir === 'asc' ? 'none' : 'desc';
+      } else {
+        sort.col = col;
+        sort.dir = (col === 'name' || col === 'type' || col === 'endoTier' || col === 'priceSource') ? 'asc' : 'desc';
+      }
+      updateSortHeaders(tab);
+      if (tab === 'flip') applyFlipFilters(); else applyEndoFilters();
+    });
+  });
+}
+
+// ═══════════════════════════════════════════
+// FLIP FILTERS & RENDER
+// ═══════════════════════════════════════════
+function applyFlipFilters() {
+  const name = document.getElementById('flipFilterName').value.toLowerCase();
+  const minProfit = parseFloat(document.getElementById('flipMinProfit').value) || null;
+  const minOpp = parseFloat(document.getElementById('flipMinOpp').value) || null;
+  const minSell = parseFloat(document.getElementById('flipMinSell').value) || null;
+  const minVol = parseFloat(document.getElementById('flipMinVol').value) || null;
 
   const typeChecks = {};
-  document.querySelectorAll('.type-chip input').forEach(cb => {
-    const type = cb.closest('.type-chip').classList.contains('archon') ? 'Archon' :
-                 cb.closest('.type-chip').classList.contains('galvanized') ? 'Galvanized' :
-                 cb.closest('.type-chip').classList.contains('primed') ? 'Primed' : 'Regular';
+  document.querySelectorAll('#flipFilters .type-chip input').forEach(cb => {
+    const cls = cb.closest('.type-chip').className;
+    const type = cls.includes('archon') ? 'Archon' : cls.includes('galvanized') ? 'Galvanized' :
+                 cls.includes('primed') ? 'Primed' : 'Regular';
     typeChecks[type] = cb.checked;
   });
 
-  filteredMods = allMods.filter(m => {
-    if (nameFilter && !m.name.toLowerCase().includes(nameFilter)) return false;
+  flipFiltered = flipMods.filter(m => {
+    if (name && !m.name.toLowerCase().includes(name)) return false;
     if (!typeChecks[m.type]) return false;
     if (minProfit != null && (m.flipProfit == null || m.flipProfit < minProfit)) return false;
     if (minOpp != null && (m.oppScore == null || m.oppScore < minOpp)) return false;
     if (minSell != null && (m.sellPrice == null || m.sellPrice < minSell)) return false;
-    if (minVol != null && (m.maxVol == null || m.maxVol < minVol)) return false;
+    if (minVol != null && m.maxVol < minVol) return false;
     return true;
   });
 
-  filteredMods = sortMods(filteredMods);
-  renderTable();
+  flipFiltered = sortData(flipFiltered, flipSort);
+  renderFlipTable();
 }
 
-// ── Render Table ──
-function renderTable() {
-  const tbody = document.getElementById('tableBody');
-  const empty = document.getElementById('emptyState');
-
-  if (filteredMods.length === 0 && allMods.length === 0) {
-    tbody.innerHTML = '';
-    empty.style.display = 'block';
-    document.getElementById('resultCount').innerHTML = '';
-    return;
+function renderFlipTable() {
+  const tbody = document.getElementById('flipBody');
+  const empty = document.getElementById('flipEmpty');
+  if (flipFiltered.length === 0 && flipMods.length === 0) {
+    tbody.innerHTML = ''; empty.style.display = 'block';
+    document.getElementById('flipResultCount').innerHTML = ''; return;
   }
   empty.style.display = 'none';
-
-  document.getElementById('resultCount').innerHTML =
-    `Showing <span>${filteredMods.length}</span> of <span>${allMods.length}</span> mods`;
+  document.getElementById('flipResultCount').innerHTML =
+    `Showing <span>${flipFiltered.length}</span> of <span>${flipMods.length}</span> mods`;
 
   const rows = [];
-  filteredMods.forEach((m, i) => {
+  flipFiltered.forEach((m, i) => {
     const typeCls = 'type-' + m.type.toLowerCase();
     const profitCls = m.flipProfit != null ? (m.flipProfit >= 80 ? 'profit-high' : m.flipProfit >= 60 ? 'profit-mid' : 'profit-low') : '';
     const oppCls = m.oppScore != null ? (m.oppScore >= 300 ? 'opp-high' : m.oppScore >= 250 ? 'opp-mid' : 'opp-low') : '';
-
     rows.push(`<tr>
-      <td class="num rank-col">${i + 1}</td>
+      <td class="num rank-col">${i+1}</td>
       <td>${esc(m.name)}</td>
       <td><span class="type-badge ${typeCls}">${m.type}</span></td>
       <td class="num">${fmt(m.buyPrice)}</td>
@@ -626,10 +749,75 @@ function renderTable() {
       <td><a class="mod-link" href="https://warframe.market/items/${m.slug}" target="_blank">View</a></td>
     </tr>`);
   });
-
   tbody.innerHTML = rows.join('');
 }
 
+// ═══════════════════════════════════════════
+// ENDO FILTERS & RENDER
+// ═══════════════════════════════════════════
+function applyEndoFilters() {
+  const name = document.getElementById('endoFilterName').value.toLowerCase();
+  const minRatio = parseFloat(document.getElementById('endoMinRatio').value) || null;
+  const minVol = parseFloat(document.getElementById('endoMinVol').value) || null;
+
+  const tierChecks = {};
+  document.querySelectorAll('#endoFilters .type-chip input').forEach(cb => {
+    const cls = cb.closest('.type-chip').className;
+    const tier = cls.includes('primed-archon') ? 'Primed/Archon' :
+                 cls.includes('galv-gold') ? 'Galv/Gold' :
+                 cls.includes('silver') ? 'Silver' : 'Bronze';
+    tierChecks[tier] = cb.checked;
+  });
+
+  endoFiltered = endoMods.filter(m => {
+    if (name && !m.name.toLowerCase().includes(name)) return false;
+    if (!tierChecks[m.endoTier]) return false;
+    if (minRatio != null && m.endoPerPlat < minRatio) return false;
+    if (minVol != null && m.maxVol < minVol) return false;
+    return true;
+  });
+
+  endoFiltered = sortData(endoFiltered, endoSort);
+  renderEndoTable();
+}
+
+function renderEndoTable() {
+  const tbody = document.getElementById('endoBody');
+  const empty = document.getElementById('endoEmpty');
+  if (endoFiltered.length === 0 && endoMods.length === 0) {
+    tbody.innerHTML = ''; empty.style.display = 'block';
+    document.getElementById('endoResultCount').innerHTML = ''; return;
+  }
+  empty.style.display = 'none';
+  document.getElementById('endoResultCount').innerHTML =
+    `Showing <span>${endoFiltered.length}</span> of <span>${endoMods.length}</span> mods`;
+
+  const rows = [];
+  endoFiltered.forEach((m, i) => {
+    const tierCls = m.endoTier === 'Primed/Archon' ? 'type-primed' :
+                    m.endoTier === 'Galv/Gold' ? 'type-gold' :
+                    m.endoTier === 'Silver' ? 'type-silver' : 'type-bronze';
+    // Color: higher endo/plat = better. Thresholds: >=500 green, >=300 yellow, <300 red
+    const endoCls = m.endoPerPlat >= 500 ? 'endo-high' : m.endoPerPlat >= 300 ? 'endo-mid' : 'endo-low';
+
+    rows.push(`<tr>
+      <td class="num rank-col">${i+1}</td>
+      <td>${esc(m.name)}</td>
+      <td><span class="type-badge ${tierCls}">${m.endoTier}</span></td>
+      <td class="num">${m.endoReturn.toLocaleString()}</td>
+      <td class="num">${fmt(m.r10Price)}</td>
+      <td class="num ${endoCls}">${fmt(m.endoPerPlat)}</td>
+      <td class="num">${m.maxVol}</td>
+      <td><span class="price-source">${m.priceSource}</span></td>
+      <td><a class="mod-link" href="https://warframe.market/items/${m.slug}" target="_blank">View</a></td>
+    </tr>`);
+  });
+  tbody.innerHTML = rows.join('');
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
 function fmt(val) {
   if (val == null) return '\u2014';
   return Number.isInteger(val) ? val.toLocaleString() : val.toFixed(1);
@@ -640,25 +828,31 @@ function esc(str) {
   return d.innerHTML;
 }
 
-// ── Init: Load cache, only auto-fetch if stale (>24hrs) or empty ──
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+attachSortHandlers('flipThead', 'flip');
+attachSortHandlers('endoThead', 'endo');
+
 (function init() {
   let cacheAge = Infinity;
   try {
-    const cached = localStorage.getItem('wf_mod_flip_cache');
+    const cached = localStorage.getItem('wf_mod_cache_v2');
     if (cached) {
       const data = JSON.parse(cached);
-      allMods = data.mods || [];
+      flipMods = data.flipMods || [];
+      endoMods = data.endoMods || [];
       updateStatus(data.fetchedAt);
-      sortCol = 'oppScore';
-      sortDir = 'desc';
-      updateSortHeaders();
-      applyFilters();
+      applyFlipFilters();
+      applyEndoFilters();
+      updateSortHeaders('flip');
+      updateSortHeaders('endo');
       cacheAge = Date.now() - new Date(data.fetchedAt).getTime();
     }
   } catch (e) {}
 
   const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-  if (cacheAge > TWENTY_FOUR_HOURS || allMods.length === 0) {
+  if (cacheAge > TWENTY_FOUR_HOURS || flipMods.length === 0) {
     startFetch();
   }
 })();
