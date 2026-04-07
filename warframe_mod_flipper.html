@@ -486,8 +486,10 @@ async function startFetch() {
               rM_vol += entry.volume || 0;
             }
           }
-          // Use fallback prices for R0 only (flip tab needs it)
+          // Use fallback prices when SMA isn't available
           if (r0_sma == null && r0_fallback != null) r0_sma = r0_fallback;
+          const rM_hadSMA = rM_sma != null;
+          if (rM_sma == null && rM_fallback != null) rM_sma = rM_fallback;
 
           const modName = mod.i18n?.en?.name || mod.slug;
           rawResults.push({
@@ -495,12 +497,12 @@ async function startFetch() {
             slug: mod.slug,
             tags: mod.tags || [],
             r0_sma, rM_sma, r0_vol, rM_vol,
-            rM_avg: rM_fallback
+            rM_hadSMA
           });
         } catch (e) { errors++; }
         completed++;
         if (completed % 10 === 0 || completed === total) {
-          const pct = 5 + (completed / total) * 85;
+          const pct = 5 + (completed / total) * 93;
           updateProgress(pct, `Fetched ${completed}/${total} mods (${errors} errors)`);
         }
         await new Promise(r => setTimeout(r, DELAY));
@@ -512,48 +514,7 @@ async function startFetch() {
     mods.forEach((mod, idx) => chunks[idx % WORKERS].push(mod));
     await Promise.all(chunks.map(chunk => statsWorker(chunk)));
 
-    // Phase 2: For endo tab, fetch orders for mods without R10 SMA
-    const needOrders = rawResults.filter(m => m.rM_sma == null);
-    updateProgress(92, `Fetching listings for ${needOrders.length} mods without SMA...`);
-
-    let ordersCompleted = 0;
-    const orderResults = new Map();
-
-    async function ordersWorker(modList) {
-      for (const mod of modList) {
-        try {
-          const resp = await fetchWithRetry(`/api/v1/items/${mod.slug}/orders`);
-          if (resp.ok) {
-            const json = await resp.json();
-            const orders = json.payload?.orders || [];
-            const sellOrders = orders.filter(o =>
-              o.order_type === 'sell' &&
-              o.mod_rank === 10 &&
-              o.user?.status === 'ingame'
-            );
-            if (sellOrders.length > 0) {
-              const minPrice = Math.min(...sellOrders.map(o => o.platinum));
-              orderResults.set(mod.slug, minPrice);
-            }
-          }
-        } catch (e) {}
-        ordersCompleted++;
-        if (ordersCompleted % 5 === 0 || ordersCompleted === needOrders.length) {
-          updateProgress(92 + (ordersCompleted / Math.max(needOrders.length, 1)) * 6,
-            `Fetching listings ${ordersCompleted}/${needOrders.length}...`);
-        }
-        await new Promise(r => setTimeout(r, DELAY));
-      }
-    }
-
-    if (needOrders.length > 0) {
-      const oChunks = [];
-      for (let i = 0; i < WORKERS; i++) oChunks.push([]);
-      needOrders.forEach((mod, idx) => oChunks[idx % WORKERS].push(mod));
-      await Promise.all(oChunks.map(chunk => ordersWorker(chunk)));
-    }
-
-    // Phase 3: Build flip mods and endo mods
+    // Build flip mods and endo mods
     const newFlipMods = [];
     const newEndoMods = [];
 
@@ -573,17 +534,9 @@ async function startFetch() {
         });
       }
 
-      // Endo tab: needs R10 price — prefer SMA, then in-game listing, then avg
+      // Endo tab: needs R10 price (SMA or weighted avg fallback)
       let r10Price = m.rM_sma;
-      let priceSource = 'SMA';
-      if (r10Price == null && orderResults.has(m.slug)) {
-        r10Price = orderResults.get(m.slug);
-        priceSource = 'Listing';
-      }
-      if (r10Price == null && m.rM_avg != null) {
-        r10Price = m.rM_avg;
-        priceSource = 'Avg';
-      }
+      let priceSource = m.rM_hadSMA ? 'SMA' : 'Avg';
       if (r10Price != null && r10Price > 0) {
         newEndoMods.push({
           name: m.name, slug: m.slug,
