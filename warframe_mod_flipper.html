@@ -234,6 +234,36 @@
   .tab-content { display: none; flex-direction: column; flex: 1; overflow: hidden; }
   .tab-content.active { display: flex; }
 
+  /* ── Packs Tab ── */
+  .packs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; padding: 20px 28px; overflow: auto; flex: 1; }
+  .pack-card {
+    background: #0d1117; border: 1px solid #1e2a3a; border-radius: 10px; padding: 18px;
+    transition: border-color 0.2s;
+  }
+  .pack-card:hover { border-color: #00b4d8; }
+  .pack-card-title { font-size: 16px; font-weight: 700; color: #e0e0e0; margin-bottom: 4px; }
+  .pack-card-cost { font-size: 12px; color: #667788; margin-bottom: 12px; }
+  .pack-ev { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+  .pack-ev-label { font-size: 11px; color: #667788; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .pack-arcane-list { font-size: 12px; max-height: 320px; overflow-y: auto; }
+  .pack-arcane-list::-webkit-scrollbar { width: 4px; }
+  .pack-arcane-list::-webkit-scrollbar-thumb { background: #2a3a4a; border-radius: 2px; }
+  .tier-header {
+    font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;
+    padding: 6px 0 3px; margin-top: 6px; border-bottom: 1px solid #1e2a3a;
+  }
+  .tier-header:first-child { margin-top: 0; }
+  .arcane-row {
+    display: grid; grid-template-columns: 1fr 55px 55px 40px; gap: 4px;
+    padding: 2px 0; color: #8899aa; line-height: 1.6;
+  }
+  .arcane-maxprice { text-align: right; }
+  .arcane-row.dissolved { opacity: 0.5; }
+  .arcane-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .arcane-plat { text-align: right; }
+  .arcane-vosfor { text-align: right; }
+  .pack-no-data { color: #556; font-size: 12px; font-style: italic; }
+
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: #0a0a14; }
   ::-webkit-scrollbar-thumb { background: #2a3a4a; border-radius: 4px; }
@@ -254,6 +284,9 @@
     </div>
     <div class="nav-item" onclick="switchTab('vosfor')" id="navVosfor">
       <span class="nav-icon">&#9733;</span> Vosfor Dissolve
+    </div>
+    <div class="nav-item" onclick="switchTab('packs')" id="navPacks">
+      <span class="nav-icon">&#9830;</span> Arcane Packs
     </div>
   </div>
   <div style="padding: 12px 8px;">
@@ -374,6 +407,33 @@
       <tbody id="endoBody"></tbody>
     </table>
     <div class="empty-state" id="endoEmpty">
+      <h2>No data yet</h2><p>Click "Fetch Data" to pull live prices from warframe.market</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ PACKS TAB ═══════ -->
+<div class="tab-content" id="tabPacks">
+  <div class="tab-header">
+    <h2>Arcane Pack Value Calculator</h2>
+    <div class="formula-text">
+      <span>Arcane Value</span> = Max Rank Price &divide; (21 or 10) &nbsp;&nbsp;|&nbsp;&nbsp;
+      <span>Recycle</span> = Dissolve cheap arcanes &rarr; buy more packs &rarr; repeat
+      <br>
+      <span>Total EV</span> = Direct Plat &divide; (1 &minus; Vosfor Recycled &divide; 200)
+    </div>
+  </div>
+  <div class="filters" id="packsFilters">
+    <div class="filter-group">
+      <label>Dissolve Threshold</label>
+      <input type="number" id="packThreshold" placeholder="e.g. 50" value="" oninput="renderPacks()" style="width:110px">
+    </div>
+    <div style="font-size:11px; color:#667788; margin-left:4px;">
+      If max rank price &lt; this, dissolve for vosfor instead of selling
+    </div>
+  </div>
+  <div class="packs-grid" id="packsGrid">
+    <div class="empty-state" id="packsEmpty">
       <h2>No data yet</h2><p>Click "Fetch Data" to pull live prices from warframe.market</p>
     </div>
   </div>
@@ -508,6 +568,76 @@ const ARCANE_RARITY_OVERRIDES = {
 // Filter out Peculiar mods (not arcanes)
 const PECULIAR_SLUGS = new Set(['peculiar_growth','peculiar_bloom','peculiar_audience','peculiar_end']);
 
+// Arcane collections (excluding Descendia — not bought with vosfor)
+const ARCANE_COLLECTIONS = {
+  'Cavia': {
+    arcanes: {
+      uncommon: ['melee_fortification','melee_retaliation'],
+      rare: ['arcane_battery','arcane_ice_storm','secondary_fortifer','secondary_surge','melee_afflections','melee_animosity','melee_exposure','melee_influence','melee_vortex'],
+      legendary: ['melee_crescendo','melee_duplicate']
+    },
+    drops: { uncommon: 0.45, rare: 0.50, legendary: 0.05 }
+  },
+  'Duviri': {
+    arcanes: {
+      uncommon: ['arcane_intention','magus_aggress'],
+      rare: ['arcane_power_ramp','primary_blight','primary_exhilarate','primary_obstruct','shotgun_vendetta','akimbo_slip_shot','secondary_outburst'],
+      legendary: ['arcane_reaper','longbow_sharpshot','secondary_shiver']
+    },
+    drops: { uncommon: 0.45, rare: 0.50, legendary: 0.05 }
+  },
+  'Eidolon': {
+    arcanes: {
+      common: ['arcane_consequence','arcane_ice','arcane_momentum','arcane_nullifier','arcane_tempo','arcane_warmth'],
+      uncommon: ['arcane_acceleration','arcane_agility','arcane_awakening','arcane_deflection','arcane_eruption','arcane_guardian','arcane_healing','arcane_phantasm','arcane_resistance','arcane_strike','arcane_trickery','arcane_velocity','arcane_victory'],
+      rare: ['arcane_aegis','arcane_arachne','arcane_avenger','arcane_fury','arcane_precision','arcane_pulse','arcane_rage','arcane_ultimatum'],
+      legendary: ['arcane_barrier','arcane_energize','arcane_grace']
+    },
+    drops: { common: 0.40, uncommon: 0.35, rare: 0.20, legendary: 0.05 }
+  },
+  'Holdfast': {
+    arcanes: {
+      rare: ['arcane_blessing','arcane_rise','molt_augmented','molt_efficiency','molt_reconstruct','molt_vigor','emergence_dissipate','emergence_renewed','emergence_savior','eternal_eradicate','eternal_logistics','eternal_onslaught','fractalized_reset','primary_frostbite','cascadia_accuracy','cascadia_empowered','cascadia_flare','cascadia_overcharge','conjunction_voltage']
+    },
+    drops: { rare: 1.0 }
+  },
+  'Hollvania': {
+    arcanes: {
+      rare: ['arcane_bellicose','arcane_camisado','arcane_crepuscular','arcane_impetus','arcane_truculence','primary_crux','secondary_enervate','melee_doughty'],
+      legendary: ['arcane_escapist','arcane_hot_shot','arcane_universal_fallout']
+    },
+    drops: { rare: 0.95, legendary: 0.05 }
+  },
+  'Necralisk': {
+    arcanes: {
+      rare: ['arcane_double_back','arcane_steadfast','theorem_contagion','theorem_demulcent','theorem_infection','primary_plated_round','secondary_encumber','secondary_kinship','residual_boils','residual_malodor','residual_shock','residual_viremia']
+    },
+    drops: { rare: 1.0 }
+  },
+  'Ostron': {
+    arcanes: {
+      common: ['magus_husk','magus_vigor','virtuos_null','virtuos_tempo'],
+      uncommon: ['exodia_triumph','exodia_valor','magus_cadence','magus_cloud','magus_replenish','virtuos_fury','virtuos_strike'],
+      rare: ['exodia_brave','exodia_force','exodia_hunt','exodia_might','magus_elevate','magus_nourish','virtuos_ghost','virtuos_shadow']
+    },
+    drops: { common: 0.60, uncommon: 0.30, rare: 0.10 }
+  },
+  'Solaris': {
+    arcanes: {
+      common: ['magus_accelerant','magus_anomaly','magus_drive','magus_firewall','magus_overload','virtuos_spike','virtuos_surge'],
+      uncommon: ['magus_glitch','magus_repair','virtuos_forge','virtuos_trojan'],
+      rare: ['pax_bolt','pax_charge','pax_seeker','pax_soar','magus_destruct','magus_lockdown','magus_melt','magus_revert']
+    },
+    drops: { common: 0.70, uncommon: 0.15, rare: 0.15 }
+  },
+  'Steel': {
+    arcanes: {
+      rare: ['arcane_blade_charger','arcane_bodyguard','arcane_pistoleer','arcane_primary_charger','arcane_tanker','primary_deadhead','primary_dexterity','primary_merciless','secondary_deadhead','secondary_dexterity','secondary_merciless']
+    },
+    drops: { rare: 1.0 }
+  }
+};
+
 function classifyArcaneRarity(slug, tags) {
   if (ARCANE_RARITY_OVERRIDES[slug]) return ARCANE_RARITY_OVERRIDES[slug];
   if (tags.includes('legendary')) return 'Legendary';
@@ -524,8 +654,8 @@ function switchTab(tab) {
   activeTab = tab;
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const tabMap = { flip: 'tabFlip', endo: 'tabEndo', vosfor: 'tabVosfor' };
-  const navMap = { flip: 'navFlip', endo: 'navEndo', vosfor: 'navVosfor' };
+  const tabMap = { flip: 'tabFlip', endo: 'tabEndo', vosfor: 'tabVosfor', packs: 'tabPacks' };
+  const navMap = { flip: 'navFlip', endo: 'navEndo', vosfor: 'navVosfor', packs: 'navPacks' };
   document.getElementById(tabMap[tab]).classList.add('active');
   document.getElementById(navMap[tab]).classList.add('active');
 }
@@ -801,6 +931,7 @@ async function startFetch() {
     applyFlipFilters();
     applyEndoFilters();
     applyVosforFilters();
+    renderPacks();
     updateSortHeaders('flip');
     updateSortHeaders('endo');
     updateSortHeaders('vosfor');
@@ -1075,6 +1206,170 @@ function renderVosforTable() {
 }
 
 // ═══════════════════════════════════════════
+// PACKS RENDER
+// ═══════════════════════════════════════════
+function renderPacks() {
+  const grid = document.getElementById('packsGrid');
+  if (!grid) return;
+
+  const threshold = parseFloat(document.getElementById('packThreshold')?.value) || 0;
+
+  // Build maps: slug -> max rank price, slug -> unit price, slug -> base vosfor
+  const arcaneMaxPrice = {};
+  const arcaneUnitPrice = {};
+  const arcaneBaseVosfor = {};
+  for (const m of vosforMods) {
+    if (m.rankLabel !== 'R0') {
+      const maxR = m.rankLabel === 'R5' ? 5 : 3;
+      const mult = maxR === 5 ? 21 : 10;
+      arcaneMaxPrice[m.slug] = m.price;
+      arcaneUnitPrice[m.slug] = m.price / mult;
+    }
+  }
+  for (const m of vosforMods) {
+    if (m.rankLabel === 'R0' && !arcaneUnitPrice[m.slug]) {
+      arcaneUnitPrice[m.slug] = m.price;
+      arcaneMaxPrice[m.slug] = m.price;
+    }
+  }
+  // Base vosfor from VOSFOR_MAP
+  for (const [slug, v] of Object.entries(VOSFOR_MAP)) {
+    arcaneBaseVosfor[slug] = v;
+  }
+
+  const rarityOrder = ['common', 'uncommon', 'rare', 'legendary'];
+  const rarityLabels = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', legendary: 'Legendary' };
+  const rarityColors = { common: '#f59e0b', uncommon: '#cbd5e1', rare: '#fbbf24', legendary: '#e0e0e0' };
+
+  // Build slug->rarity and slug->name maps
+  const rarityMap = {};
+  const nameMap = {};
+  for (const m of vosforMods) {
+    if (!rarityMap[m.slug]) rarityMap[m.slug] = m.rarity.toLowerCase();
+    if (!nameMap[m.slug]) nameMap[m.slug] = m.name;
+  }
+
+  const packResults = [];
+
+  for (const [collName, coll] of Object.entries(ARCANE_COLLECTIONS)) {
+    // Per-arcane expected plat and vosfor
+    let evPlatPerArcane = 0;
+    let evVosforPerArcane = 0;
+    const arcaneRows = []; // individual arcane rows for detailed view
+
+    for (const rarity of rarityOrder) {
+      const dropChance = coll.drops[rarity] || 0;
+      if (dropChance === 0) continue;
+      const slugsInRarity = coll.arcanes[rarity] || [];
+      if (slugsInRarity.length === 0) continue;
+
+      let totalPlat = 0, totalVosfor = 0, count = 0;
+      const arcaneDetails = [];
+
+      for (const slug of slugsInRarity) {
+        const unitPrice = arcaneUnitPrice[slug];
+        const maxPrice = arcaneMaxPrice[slug];
+        const baseVosfor = arcaneBaseVosfor[slug] || 0;
+        if (unitPrice == null) continue;
+        count++;
+
+        const dissolved = threshold > 0 && maxPrice < threshold;
+        if (dissolved) {
+          totalVosfor += baseVosfor;
+        } else {
+          totalPlat += unitPrice;
+        }
+
+        arcaneDetails.push({
+          slug, name: nameMap[slug] || slug.replace(/_/g, ' '),
+          rarity, color: rarityColors[rarity],
+          unitPrice, maxPrice, baseVosfor, dissolved
+        });
+      }
+
+      const perArcaneChance = count > 0 ? dropChance / count : 0;
+      const individualChance = perArcaneChance * 100;
+      evPlatPerArcane += perArcaneChance * totalPlat;
+      evVosforPerArcane += perArcaneChance * totalVosfor;
+
+      // Sort arcanes within tier by name
+      arcaneDetails.sort((a, b) => a.name.localeCompare(b.name));
+
+      arcaneRows.push({
+        rarity, label: rarityLabels[rarity], color: rarityColors[rarity],
+        tierChance: (dropChance * 100).toFixed(0),
+        count: arcaneDetails.length,
+        individualChance: individualChance.toFixed(1),
+        arcanes: arcaneDetails
+      });
+    }
+
+    const directPlat = evPlatPerArcane * 3;
+    const recycledVosfor = evVosforPerArcane * 3;
+    const r = recycledVosfor / 200;
+    const totalEV = r < 1 ? directPlat / (1 - r) : directPlat;
+    const recycledPlat = totalEV - directPlat;
+
+    packResults.push({ name: collName, totalEV, directPlat, recycledPlat, recycledVosfor, ratio: r, arcaneRows });
+  }
+
+  packResults.sort((a, b) => b.totalEV - a.totalEV);
+
+  if (packResults.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><h2>No data yet</h2><p>Click "Fetch Data" to pull live prices from warframe.market</p></div>';
+    return;
+  }
+
+  const hasThreshold = threshold > 0;
+
+  const cards = packResults.map(p => {
+    const evColor = p.totalEV >= 10 ? '#4ade80' : p.totalEV >= 5 ? '#fbbf24' : '#f87171';
+
+    // Build arcane detail rows grouped by rarity
+    const tierSections = p.arcaneRows.map(tier => {
+      const header = `<div class="tier-header" style="color:${tier.color}">
+        ${tier.label} (${tier.count}) &mdash; ${tier.tierChance}% tier drop &mdash; ${tier.individualChance}% each
+      </div>`;
+
+      const rows = tier.arcanes.map(a => {
+        const platCell = a.dissolved
+          ? `<span style="color:#667788;font-style:italic">dissolve</span>`
+          : `<span style="color:#e0e0e0">${a.unitPrice.toFixed(1)}p</span>`;
+        const maxPriceCell = `<span style="color:#b0b8c0">${a.maxPrice != null ? a.maxPrice.toFixed(0) + 'p' : '—'}</span>`;
+        const vosforCell = `<span style="color:#8899aa">${a.baseVosfor}v</span>`;
+        return `<div class="arcane-row${a.dissolved ? ' dissolved' : ''}">
+          <span class="arcane-name" style="color:${a.color}">${esc(a.name)}</span>
+          <span class="arcane-maxprice">${maxPriceCell}</span>
+          <span class="arcane-plat">${platCell}</span>
+          <span class="arcane-vosfor">${vosforCell}</span>
+        </div>`;
+      }).join('');
+
+      return header + rows;
+    }).join('');
+
+    const evBreakdown = hasThreshold && p.recycledPlat > 0.01
+      ? `<div style="font-size:12px;color:#8899aa;margin-top:2px">
+          <span style="color:#e0e0e0">${p.directPlat.toFixed(1)}p</span> direct +
+          <span style="color:#00e5ff">${p.recycledPlat.toFixed(1)}p</span> recycled
+          <span style="color:#556;font-size:10px">(${(p.ratio * 100).toFixed(1)}% vosfor return)</span>
+        </div>`
+      : '';
+
+    return `<div class="pack-card">
+      <div class="pack-card-title">${esc(p.name)} Collection</div>
+      <div class="pack-card-cost">200 vosfor &bull; 3 arcanes</div>
+      <div class="pack-ev" style="color:${evColor}">${p.totalEV.toFixed(1)}p</div>
+      <div class="pack-ev-label">Total Expected Value per Pack</div>
+      ${evBreakdown}
+      <div class="pack-arcane-list" style="margin-top:10px">${tierSections}</div>
+    </div>`;
+  });
+
+  grid.innerHTML = cards.join('');
+}
+
+// ═══════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════
 function fmt(val) {
@@ -1094,6 +1389,18 @@ attachSortHandlers('flipThead', 'flip');
 attachSortHandlers('endoThead', 'endo');
 attachSortHandlers('vosforThead', 'vosfor');
 
+// Attach threshold listener explicitly (belt-and-suspenders with oninput)
+(function() {
+  const threshInput = document.getElementById('packThreshold');
+  if (threshInput) {
+    let debounceTimer;
+    threshInput.addEventListener('input', function() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(renderPacks, 150);
+    });
+  }
+})();
+
 (function init() {
   let cacheAge = Infinity;
   try {
@@ -1107,6 +1414,7 @@ attachSortHandlers('vosforThead', 'vosfor');
       applyFlipFilters();
       applyEndoFilters();
       applyVosforFilters();
+      renderPacks();
       updateSortHeaders('flip');
       updateSortHeaders('endo');
       updateSortHeaders('vosfor');
