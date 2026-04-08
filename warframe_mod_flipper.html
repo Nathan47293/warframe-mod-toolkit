@@ -148,6 +148,11 @@
   .type-chip.galv-gold input:checked + .chip { background: #d97706; color: #fff; }
   .type-chip.silver input:checked + .chip { background: #94a3b8; color: #0a0a14; }
   .type-chip.bronze input:checked + .chip { background: #b45309; color: #fff; }
+  .type-chip.legendary input:checked + .chip { background: #c0c0c0; color: #0a0a14; }
+  .type-chip.rare-arc input:checked + .chip { background: #d97706; color: #fff; }
+  .type-chip.uncommon-arc input:checked + .chip { background: #94a3b8; color: #0a0a14; }
+  .type-chip.common-arc input:checked + .chip { background: #b45309; color: #fff; }
+  .type-chip.tektolyst input:checked + .chip { background: #dc2626; color: #fff; }
   .type-chip input:not(:checked) + .chip { color: #667; }
 
   .filter-sep { width: 1px; height: 24px; background: #2a3a4a; }
@@ -199,6 +204,11 @@
   .type-gold { background: #d9770622; color: #fbbf24; border: 1px solid #d9770644; }
   .type-silver { background: #94a3b822; color: #cbd5e1; border: 1px solid #94a3b844; }
   .type-bronze { background: #b4530922; color: #f59e0b; border: 1px solid #b4530944; }
+  .type-legendary { background: #c0c0c022; color: #e0e0e0; border: 1px solid #c0c0c044; }
+  .type-rare-arc { background: #d9770622; color: #fbbf24; border: 1px solid #d9770644; }
+  .type-uncommon-arc { background: #94a3b822; color: #cbd5e1; border: 1px solid #94a3b844; }
+  .type-common-arc { background: #b4530922; color: #f59e0b; border: 1px solid #b4530944; }
+  .type-tektolyst { background: #dc262622; color: #f87171; border: 1px solid #dc262644; }
 
   .profit-high { color: #4ade80; font-weight: 600; }
   .profit-mid { color: #fbbf24; }
@@ -209,6 +219,9 @@
   .endo-high { color: #4ade80; font-weight: 600; }
   .endo-mid { color: #fbbf24; }
   .endo-low { color: #f87171; }
+  .vosfor-high { color: #4ade80; font-weight: 600; }
+  .vosfor-mid { color: #fbbf24; }
+  .vosfor-low { color: #f87171; }
 
   .mod-link { color: #0ea5e9; text-decoration: none; font-size: 12px; }
   .mod-link:hover { text-decoration: underline; color: #38bdf8; }
@@ -238,6 +251,9 @@
     </div>
     <div class="nav-item" onclick="switchTab('endo')" id="navEndo">
       <span class="nav-icon">&#9881;</span> Endo Dissolve
+    </div>
+    <div class="nav-item" onclick="switchTab('vosfor')" id="navVosfor">
+      <span class="nav-icon">&#9733;</span> Vosfor Dissolve
     </div>
   </div>
   <div style="padding: 12px 8px;">
@@ -315,7 +331,7 @@
     <h2>Endo Dissolve Calculator</h2>
     <div class="formula-text">
       <span>Endo/Plat</span> = Endo Return &divide; R10 Price &nbsp;&nbsp;|&nbsp;&nbsp;
-      <span>Price:</span> 48hr SMA if available, otherwise cheapest R10 sell listing
+      <span>Price:</span> 48hr SMA if available, otherwise weighted avg
     </div>
   </div>
   <div class="endo-info">
@@ -363,6 +379,56 @@
   </div>
 </div>
 
+<!-- ═══════ VOSFOR TAB ═══════ -->
+<div class="tab-content" id="tabVosfor">
+  <div class="tab-header">
+    <h2>Vosfor Dissolve Calculator</h2>
+    <div class="formula-text">
+      <span>Vosfor/Plat</span> = Vosfor Return &divide; Price &nbsp;&nbsp;|&nbsp;&nbsp;
+      <span>Max Rank Vosfor</span> = Base Vosfor &times; 21 (R5) or &times; 10 (R3)
+    </div>
+  </div>
+  <div class="filters" id="vosforFilters">
+    <div class="filter-group">
+      <label>Search</label>
+      <input type="text" id="vosforFilterName" placeholder="Arcane name..." oninput="applyVosforFilters()">
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group type-filters">
+      <label>Rarity</label>
+      <label class="type-chip legendary"><input type="checkbox" checked onchange="applyVosforFilters()"><span class="chip">Legendary</span></label>
+      <label class="type-chip rare-arc"><input type="checkbox" checked onchange="applyVosforFilters()"><span class="chip">Rare</span></label>
+      <label class="type-chip uncommon-arc"><input type="checkbox" checked onchange="applyVosforFilters()"><span class="chip">Uncommon</span></label>
+      <label class="type-chip common-arc"><input type="checkbox" checked onchange="applyVosforFilters()"><span class="chip">Common</span></label>
+      <label class="type-chip tektolyst"><input type="checkbox" checked onchange="applyVosforFilters()"><span class="chip">Tektolyst</span></label>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group"><label>Min Vosfor/Plat</label><input type="number" id="vosforMinRatio" placeholder="0" oninput="applyVosforFilters()"></div>
+    <div class="filter-group"><label>Min Volume</label><input type="number" id="vosforMinVol" placeholder="0" oninput="applyVosforFilters()"></div>
+    <div class="result-count" id="vosforResultCount"></div>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead id="vosforThead"><tr>
+        <th data-col="rank">#</th>
+        <th data-col="name">Arcane Name</th>
+        <th data-col="rarity">Rarity</th>
+        <th data-col="rankLabel">Rank</th>
+        <th data-col="vosforReturn" class="num">Vosfor</th>
+        <th data-col="price" class="num">Price</th>
+        <th data-col="vosforPerPlat" class="num">Vosfor/Plat</th>
+        <th data-col="vol" class="num">Volume</th>
+        <th data-col="priceSource">Source</th>
+        <th data-col="link" class="no-sort">Link</th>
+      </tr></thead>
+      <tbody id="vosforBody"></tbody>
+    </table>
+    <div class="empty-state" id="vosforEmpty">
+      <h2>No data yet</h2><p>Click "Fetch Data" to pull live prices from warframe.market</p>
+    </div>
+  </div>
+</div>
+
 </div><!-- end main -->
 
 <script>
@@ -371,10 +437,13 @@
 // ═══════════════════════════════════════════
 let flipMods = [];
 let endoMods = [];
+let vosforMods = [];
 let flipFiltered = [];
 let endoFiltered = [];
+let vosforFiltered = [];
 let flipSort = { col: 'oppScore', dir: 'desc' };
 let endoSort = { col: 'endoPerPlat', dir: 'desc' };
+let vosforSort = { col: 'vosforPerPlat', dir: 'desc' };
 let isFetching = false;
 let activeTab = 'flip';
 
@@ -386,6 +455,68 @@ const ENDO_VALUES = {
   'Bronze': 7678
 };
 
+// Vosfor values per arcane (R0, from spreadsheet)
+const VOSFOR_MAP = {
+  'arcane_acceleration':21,'arcane_aegis':28,'arcane_agility':21,'arcane_arachne':28,'arcane_avenger':28,
+  'arcane_awakening':21,'arcane_barrier':98,'arcane_battery':24,'arcane_bellicose':24,'arcane_blade_charger':20,
+  'arcane_circumvent':24,'arcane_concentration':24,'arcane_blessing':22,'arcane_bodyguard':20,'arcane_camisado':24,
+  'arcane_consequence':14,'arcane_crepuscular':24,'arcane_deflection':21,'arcane_double_back':24,'arcane_energize':98,
+  'arcane_eruption':21,'arcane_escapist':24,'arcane_expertise':24,'arcane_fury':28,'arcane_grace':98,
+  'arcane_guardian':21,'arcane_healing':21,'arcane_hot_shot':24,'arcane_ice':14,'arcane_ice_storm':24,
+  'arcane_impetus':24,'arcane_intention':18,'arcane_momentum':14,'arcane_nullifier':14,'arcane_phantasm':21,
+  'arcane_pistoleer':20,'arcane_power_ramp':24,'arcane_precision':28,'arcane_primary_charger':20,'arcane_pulse':28,
+  'arcane_rage':28,'arcane_reaper':84,'arcane_resistance':21,'arcane_rise':22,'arcane_steadfast':24,
+  'arcane_strike':21,'arcane_tanker':20,'arcane_tempo':14,'arcane_trickery':21,'arcane_truculence':24,
+  'arcane_ultimatum':28,'arcane_universal_fallout':24,'arcane_velocity':21,'arcane_victory':21,'arcane_warmth':14,
+  'molt_augmented':22,'molt_efficiency':22,'molt_reconstruct':22,'molt_vigor':22,
+  'theorem_contagion':24,'theorem_demulcent':24,'theorem_infection':24,
+  'emergence_dissipate':22,'emergence_renewed':22,'emergence_savior':22,
+  'magus_accelerant':12,'magus_aggress':18,'magus_anomaly':12,'magus_cadence':18,'magus_cloud':18,
+  'magus_destruct':24,'magus_drive':12,'magus_elevate':24,'magus_firewall':12,'magus_glitch':18,
+  'magus_husk':12,'magus_lockdown':24,'magus_melt':24,'magus_nourish':24,'magus_overload':12,
+  'magus_repair':18,'magus_replenish':18,'magus_revert':24,'magus_vigor':12,
+  'eternal_eradicate':22,'eternal_logistics':22,'eternal_onslaught':22,
+  'virtuos_forge':18,'virtuos_fury':18,'virtuos_ghost':24,'virtuos_null':12,'virtuos_shadow':24,
+  'virtuos_spike':12,'virtuos_strike':18,'virtuos_surge':12,'virtuos_tempo':12,'virtuos_trojan':18,
+  'zid_an_asheir':24,'zid_an_haras':24,'zid_an_osbok':24,'zid_an_sek_eel':24,'zid_an_uskos':24,
+  'fractalized_reset':22,'longbow_sharpshot':84,'primary_blight':24,'primary_bulwark':24,'primary_crux':24,
+  'primary_deadhead':20,'primary_debilitate':24,'primary_dexterity':20,'primary_exhilarate':24,
+  'primary_frostbite':22,'primary_merciless':20,'primary_obstruct':24,'primary_overcharge':24,
+  'primary_plated_round':24,'shotgun_vendetta':24,
+  'akimbo_slip_shot':24,'cascadia_accuracy':22,'cascadia_empowered':22,'cascadia_flare':22,
+  'cascadia_overcharge':22,'conjunction_voltage':22,'secondary_deadhead':20,'secondary_dexterity':20,
+  'secondary_encumber':24,'secondary_enervate':24,'secondary_fortifer':24,'secondary_irradiate':24,
+  'secondary_kinship':24,'secondary_merciless':20,'secondary_outburst':24,'secondary_shiver':84,
+  'secondary_surge':24,
+  'melee_afflections':24,'melee_animosity':24,'melee_careen':24,'melee_crescendo':84,'melee_doughty':24,
+  'melee_duplicate':84,'melee_exposure':24,'melee_fortification':18,'melee_influence':24,
+  'melee_retaliation':18,'melee_vortex':24,
+  'pax_bolt':24,'pax_charge':24,'pax_seeker':24,'pax_soar':24,
+  'residual_boils':24,'residual_malodor':24,'residual_shock':24,'residual_viremia':24,
+  'exodia_brave':24,'exodia_force':24,'exodia_hunt':24,'exodia_might':24,
+  'exodia_triumph':18,'exodia_valor':18
+};
+
+// Hardcoded rarity overrides for arcanes missing API tags
+const ARCANE_RARITY_OVERRIDES = {
+  'arcane_consequence': 'Common', 'arcane_nullifier': 'Common', 'arcane_tempo': 'Common',
+  'arcane_warmth': 'Common', 'arcane_momentum': 'Common',
+  'zid_an_sek_eel': 'Tektolyst', 'zid_an_asheir': 'Tektolyst', 'zid_an_uskos': 'Tektolyst',
+  'zid_an_haras': 'Tektolyst', 'zid_an_osbok': 'Tektolyst'
+};
+
+// Filter out Peculiar mods (not arcanes)
+const PECULIAR_SLUGS = new Set(['peculiar_growth','peculiar_bloom','peculiar_audience','peculiar_end']);
+
+function classifyArcaneRarity(slug, tags) {
+  if (ARCANE_RARITY_OVERRIDES[slug]) return ARCANE_RARITY_OVERRIDES[slug];
+  if (tags.includes('legendary')) return 'Legendary';
+  if (tags.includes('rare')) return 'Rare';
+  if (tags.includes('uncommon')) return 'Uncommon';
+  if (tags.includes('common')) return 'Common';
+  return 'Rare'; // fallback
+}
+
 // ═══════════════════════════════════════════
 // TAB SWITCHING
 // ═══════════════════════════════════════════
@@ -393,8 +524,10 @@ function switchTab(tab) {
   activeTab = tab;
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById(tab === 'flip' ? 'tabFlip' : 'tabEndo').classList.add('active');
-  document.getElementById(tab === 'flip' ? 'navFlip' : 'navEndo').classList.add('active');
+  const tabMap = { flip: 'tabFlip', endo: 'tabEndo', vosfor: 'tabVosfor' };
+  const navMap = { flip: 'navFlip', endo: 'navEndo', vosfor: 'navVosfor' };
+  document.getElementById(tabMap[tab]).classList.add('active');
+  document.getElementById(navMap[tab]).classList.add('active');
 }
 
 // ═══════════════════════════════════════════
@@ -453,121 +586,224 @@ async function startFetch() {
       return item.maxRank === 10;
     });
 
-    updateProgress(5, `Found ${mods.length} rank-10 mods. Fetching stats...`);
+    // Also filter arcanes from the same item list
+    const arcanes = items.filter(item => {
+      const tags = item.tags || [];
+      if (!tags.includes('arcane_enhancement')) return false;
+      if (PECULIAR_SLUGS.has(item.slug)) return false;
+      return true;
+    });
 
-    // Phase 1: Fetch stats for all mods
-    const rawResults = [];
-    let completed = 0;
-    let errors = 0;
-    const total = mods.length;
+    const totalItems = mods.length + arcanes.length;
+    updateProgress(5, `Found ${mods.length} rank-10 mods + ${arcanes.length} arcanes. Fetching stats...`);
+
     const WORKERS = 3;
     const DELAY = 500;
+    let completed = 0;
+    let errors = 0;
 
-    async function statsWorker(modList) {
-      for (const mod of modList) {
-        try {
-          const resp = await fetchWithRetry(`/api/v1/items/${mod.slug}/statistics`);
-          if (!resp.ok) { errors++; completed++; continue; }
-          const json = await resp.json();
-          const stats48 = json.payload?.statistics_closed?.['48hours'] || [];
+    // ── Generic stats fetcher ──
+    async function fetchStats(itemList, resultArray, rankTargets) {
+      async function worker(list) {
+        for (const item of list) {
+          try {
+            const resp = await fetchWithRetry(`/api/v1/items/${item.slug}/statistics`);
+            if (!resp.ok) { errors++; completed++; continue; }
+            const json = await resp.json();
+            const stats48 = json.payload?.statistics_closed?.['48hours'] || [];
 
-          let r0_sma = null, rM_sma = null, r0_vol = 0, rM_vol = 0;
-          let r0_fallback = null, rM_fallback = null;
-          for (const entry of stats48) {
-            if (entry.mod_rank === 0) {
-              if (entry.moving_avg != null) r0_sma = entry.moving_avg;
-              else if (entry.wa_price != null) r0_fallback = entry.wa_price;
-              else if (entry.avg_price != null) r0_fallback = entry.avg_price;
-              r0_vol += entry.volume || 0;
-            } else if (entry.mod_rank === 10) {
-              if (entry.moving_avg != null) rM_sma = entry.moving_avg;
-              else if (entry.wa_price != null) rM_fallback = entry.wa_price;
-              else if (entry.avg_price != null) rM_fallback = entry.avg_price;
-              rM_vol += entry.volume || 0;
+            const priceData = {};
+            for (const rank of rankTargets) {
+              priceData[rank] = { sma: null, fallback: null, vol: 0 };
             }
-          }
-          // Use fallback prices when SMA isn't available
-          if (r0_sma == null && r0_fallback != null) r0_sma = r0_fallback;
-          const rM_hadSMA = rM_sma != null;
-          if (rM_sma == null && rM_fallback != null) rM_sma = rM_fallback;
+            for (const entry of stats48) {
+              const r = entry.mod_rank;
+              if (priceData[r] !== undefined) {
+                if (entry.moving_avg != null) priceData[r].sma = entry.moving_avg;
+                else if (entry.wa_price != null) priceData[r].fallback = entry.wa_price;
+                else if (entry.avg_price != null) priceData[r].fallback = entry.avg_price;
+                priceData[r].vol += entry.volume || 0;
+              }
+            }
+            // Apply fallbacks
+            for (const rank of rankTargets) {
+              const d = priceData[rank];
+              d.hadSMA = d.sma != null;
+              if (d.sma == null && d.fallback != null) d.sma = d.fallback;
+            }
 
-          const modName = mod.i18n?.en?.name || mod.slug;
-          rawResults.push({
-            name: modName,
-            slug: mod.slug,
-            tags: mod.tags || [],
-            r0_sma, rM_sma, r0_vol, rM_vol,
-            rM_hadSMA
-          });
-        } catch (e) { errors++; }
-        completed++;
-        if (completed % 10 === 0 || completed === total) {
-          const pct = 5 + (completed / total) * 93;
-          updateProgress(pct, `Fetched ${completed}/${total} mods (${errors} errors)`);
+            const name = item.i18n?.en?.name || item.slug;
+            resultArray.push({
+              name, slug: item.slug, tags: item.tags || [],
+              maxRank: item.maxRank, priceData
+            });
+          } catch (e) { errors++; }
+          completed++;
+          if (completed % 10 === 0 || completed === totalItems) {
+            const pct = 5 + (completed / totalItems) * 93;
+            updateProgress(pct, `Fetched ${completed}/${totalItems} items (${errors} errors)`);
+          }
+          await new Promise(r => setTimeout(r, DELAY));
         }
-        await new Promise(r => setTimeout(r, DELAY));
       }
+      const chunks = [];
+      for (let i = 0; i < WORKERS; i++) chunks.push([]);
+      itemList.forEach((item, idx) => chunks[idx % WORKERS].push(item));
+      await Promise.all(chunks.map(c => worker(c)));
     }
 
-    const chunks = [];
-    for (let i = 0; i < WORKERS; i++) chunks.push([]);
-    mods.forEach((mod, idx) => chunks[idx % WORKERS].push(mod));
-    await Promise.all(chunks.map(chunk => statsWorker(chunk)));
+    // Phase 1: Fetch mod stats (R0 and R10)
+    const modResults = [];
+    await fetchStats(mods, modResults, [0, 10]);
 
-    // Build flip mods and endo mods
+    // Phase 2: Fetch arcane stats (R0 and max rank)
+    const arcaneResults = [];
+    // Group arcanes by their max rank targets
+    const arcaneRanks = arcanes.map(a => {
+      const maxR = a.maxRank || 5;
+      return { ...a, _ranks: [0, maxR] };
+    });
+    // Fetch with both R0 and max rank
+    async function fetchArcaneStats() {
+      async function worker(list) {
+        for (const item of list) {
+          try {
+            const resp = await fetchWithRetry(`/api/v1/items/${item.slug}/statistics`);
+            if (!resp.ok) { errors++; completed++; continue; }
+            const json = await resp.json();
+            const stats48 = json.payload?.statistics_closed?.['48hours'] || [];
+
+            const maxR = item.maxRank || 5;
+            const priceData = { 0: { sma: null, fallback: null, vol: 0 }, [maxR]: { sma: null, fallback: null, vol: 0 } };
+            for (const entry of stats48) {
+              const r = entry.mod_rank;
+              if (priceData[r] !== undefined) {
+                if (entry.moving_avg != null) priceData[r].sma = entry.moving_avg;
+                else if (entry.wa_price != null) priceData[r].fallback = entry.wa_price;
+                else if (entry.avg_price != null) priceData[r].fallback = entry.avg_price;
+                priceData[r].vol += entry.volume || 0;
+              }
+            }
+            for (const rank of [0, maxR]) {
+              const d = priceData[rank];
+              d.hadSMA = d.sma != null;
+              if (d.sma == null && d.fallback != null) d.sma = d.fallback;
+            }
+
+            const name = item.i18n?.en?.name || item.slug;
+            arcaneResults.push({
+              name, slug: item.slug, tags: item.tags || [],
+              maxRank: maxR, priceData
+            });
+          } catch (e) { errors++; }
+          completed++;
+          if (completed % 10 === 0 || completed === totalItems) {
+            const pct = 5 + (completed / totalItems) * 93;
+            updateProgress(pct, `Fetched ${completed}/${totalItems} items (${errors} errors)`);
+          }
+          await new Promise(r => setTimeout(r, DELAY));
+        }
+      }
+      const chunks = [];
+      for (let i = 0; i < WORKERS; i++) chunks.push([]);
+      arcanes.forEach((a, idx) => chunks[idx % WORKERS].push(a));
+      await Promise.all(chunks.map(c => worker(c)));
+    }
+    await fetchArcaneStats();
+
+    // ── Build flip mods and endo mods ──
     const newFlipMods = [];
     const newEndoMods = [];
 
-    for (const m of rawResults) {
+    for (const m of modResults) {
+      const r0 = m.priceData[0], r10 = m.priceData[10];
       const flipType = classifyFlipType(m.name);
       const endoTier = classifyEndoTier(m.name, m.tags);
       const endoReturn = ENDO_VALUES[endoTier] || 0;
 
-      // Flip tab: needs both R0 and R10 SMA
-      if (m.r0_sma != null && m.rM_sma != null) {
-        const flipProfit = Math.round((m.rM_sma - m.r0_sma) * 10) / 10;
-        const oppScore = m.r0_sma > 0 ? Math.round(flipProfit * Math.log(m.rM_vol + 1) * 10) / 10 : null;
+      if (r0.sma != null && r10.sma != null) {
+        const flipProfit = Math.round((r10.sma - r0.sma) * 10) / 10;
+        const oppScore = r0.sma > 0 ? Math.round(flipProfit * Math.log(r10.vol + 1) * 10) / 10 : null;
         newFlipMods.push({
           name: m.name, slug: m.slug, type: flipType,
-          buyPrice: m.r0_sma, sellPrice: m.rM_sma,
-          flipProfit, oppScore, maxVol: m.rM_vol
+          buyPrice: r0.sma, sellPrice: r10.sma,
+          flipProfit, oppScore, maxVol: r10.vol
         });
       }
 
-      // Endo tab: needs R10 price (SMA or weighted avg fallback)
-      let r10Price = m.rM_sma;
-      let priceSource = m.rM_hadSMA ? 'SMA' : 'Avg';
-      if (r10Price != null && r10Price > 0) {
+      if (r10.sma != null && r10.sma > 0) {
         newEndoMods.push({
           name: m.name, slug: m.slug,
           endoTier, endoReturn,
-          r10Price, priceSource,
-          endoPerPlat: Math.round((endoReturn / r10Price) * 10) / 10,
-          maxVol: m.rM_vol
+          r10Price: r10.sma, priceSource: r10.hadSMA ? 'SMA' : 'Avg',
+          endoPerPlat: Math.round((endoReturn / r10.sma) * 10) / 10,
+          maxVol: r10.vol
+        });
+      }
+    }
+
+    // ── Build vosfor mods ──
+    const newVosforMods = [];
+
+    for (const a of arcaneResults) {
+      const baseVosfor = VOSFOR_MAP[a.slug];
+      if (baseVosfor == null) continue; // skip arcanes without vosfor data
+      const rarity = classifyArcaneRarity(a.slug, a.tags);
+      const maxR = a.maxRank;
+      const multiplier = maxR === 5 ? 21 : 10;
+
+      const r0 = a.priceData[0];
+      const rMax = a.priceData[maxR];
+
+      // R0 row: buy 1 unranked, dissolve
+      if (r0.sma != null && r0.sma > 0) {
+        newVosforMods.push({
+          name: a.name, slug: a.slug, rarity,
+          rankLabel: 'R0', vosforReturn: baseVosfor,
+          price: r0.sma, priceSource: r0.hadSMA ? 'SMA' : 'Avg',
+          vosforPerPlat: Math.round((baseVosfor / r0.sma) * 10) / 10,
+          vol: r0.vol
+        });
+      }
+
+      // Max rank row: buy max ranked, dissolve for base × multiplier
+      if (rMax.sma != null && rMax.sma > 0) {
+        const maxVosfor = baseVosfor * multiplier;
+        newVosforMods.push({
+          name: a.name, slug: a.slug, rarity,
+          rankLabel: `R${maxR}`, vosforReturn: maxVosfor,
+          price: rMax.sma, priceSource: rMax.hadSMA ? 'SMA' : 'Avg',
+          vosforPerPlat: Math.round((maxVosfor / rMax.sma) * 10) / 10,
+          vol: rMax.vol
         });
       }
     }
 
     flipMods = newFlipMods;
     endoMods = newEndoMods;
+    vosforMods = newVosforMods;
     flipMods.sort((a, b) => (b.oppScore || -9999) - (a.oppScore || -9999));
     endoMods.sort((a, b) => (b.endoPerPlat || 0) - (a.endoPerPlat || 0));
+    vosforMods.sort((a, b) => (b.vosforPerPlat || 0) - (a.vosforPerPlat || 0));
 
     // Cache
     const now = new Date();
-    const cacheData = { flipMods, endoMods, fetchedAt: now.toISOString() };
-    try { localStorage.setItem('wf_mod_cache_v2', JSON.stringify(cacheData)); } catch(e) {}
+    const cacheData = { flipMods, endoMods, vosforMods, fetchedAt: now.toISOString() };
+    try { localStorage.setItem('wf_mod_cache_v3', JSON.stringify(cacheData)); } catch(e) {}
 
     updateStatus(now);
-    updateProgress(100, `Done! ${flipMods.length} flip mods, ${endoMods.length} endo mods (${errors} errors)`);
+    updateProgress(100, `Done! ${flipMods.length} flip, ${endoMods.length} endo, ${vosforMods.length} vosfor (${errors} errors)`);
     setTimeout(() => showProgress(false), 2000);
 
     flipSort = { col: 'oppScore', dir: 'desc' };
     endoSort = { col: 'endoPerPlat', dir: 'desc' };
+    vosforSort = { col: 'vosforPerPlat', dir: 'desc' };
     applyFlipFilters();
     applyEndoFilters();
+    applyVosforFilters();
     updateSortHeaders('flip');
     updateSortHeaders('endo');
+    updateSortHeaders('vosfor');
 
   } catch (err) {
     updateProgress(0, `Error: ${err.message}`);
@@ -592,16 +828,17 @@ function updateProgress(pct, text) {
 function updateStatus(date) {
   const d = date instanceof Date ? date : new Date(date);
   document.getElementById('statusText').innerHTML =
-    `Last fetched:<br><span>${d.toLocaleString()}</span><br><span>${flipMods.length}</span> flip | <span>${endoMods.length}</span> endo`;
+    `Last fetched:<br><span>${d.toLocaleString()}</span><br><span>${flipMods.length}</span> flip | <span>${endoMods.length}</span> endo | <span>${vosforMods.length}</span> vosfor`;
 }
 
 // ═══════════════════════════════════════════
 // SORT (generic for both tabs)
 // ═══════════════════════════════════════════
-function getSort(tab) { return tab === 'flip' ? flipSort : endoSort; }
+function getSort(tab) { return tab === 'flip' ? flipSort : tab === 'endo' ? endoSort : vosforSort; }
 
 function updateSortHeaders(tab) {
-  const thead = document.getElementById(tab === 'flip' ? 'flipThead' : 'endoThead');
+  const theadMap = { flip: 'flipThead', endo: 'endoThead', vosfor: 'vosforThead' };
+  const thead = document.getElementById(theadMap[tab]);
   const sort = getSort(tab);
   thead.querySelectorAll('th').forEach(th => {
     th.classList.remove('sorted-asc', 'sorted-desc');
@@ -636,10 +873,12 @@ function attachSortHandlers(theadId, tab) {
         sort.dir = sort.dir === 'desc' ? 'asc' : sort.dir === 'asc' ? 'none' : 'desc';
       } else {
         sort.col = col;
-        sort.dir = (col === 'name' || col === 'type' || col === 'endoTier' || col === 'priceSource') ? 'asc' : 'desc';
+        sort.dir = (col === 'name' || col === 'type' || col === 'endoTier' || col === 'priceSource' || col === 'rarity' || col === 'rankLabel') ? 'asc' : 'desc';
       }
       updateSortHeaders(tab);
-      if (tab === 'flip') applyFlipFilters(); else applyEndoFilters();
+      if (tab === 'flip') applyFlipFilters();
+      else if (tab === 'endo') applyEndoFilters();
+      else applyVosforFilters();
     });
   });
 }
@@ -771,6 +1010,71 @@ function renderEndoTable() {
 }
 
 // ═══════════════════════════════════════════
+// VOSFOR FILTERS & RENDER
+// ═══════════════════════════════════════════
+function applyVosforFilters() {
+  const name = document.getElementById('vosforFilterName').value.toLowerCase();
+  const minRatio = parseFloat(document.getElementById('vosforMinRatio').value) || null;
+  const minVol = parseFloat(document.getElementById('vosforMinVol').value) || null;
+
+  const rarityChecks = {};
+  document.querySelectorAll('#vosforFilters .type-chip input').forEach(cb => {
+    const cls = cb.closest('.type-chip').className;
+    const rarity = cls.includes('legendary') ? 'Legendary' :
+                   cls.includes('rare-arc') ? 'Rare' :
+                   cls.includes('uncommon-arc') ? 'Uncommon' :
+                   cls.includes('common-arc') ? 'Common' : 'Tektolyst';
+    rarityChecks[rarity] = cb.checked;
+  });
+
+  vosforFiltered = vosforMods.filter(m => {
+    if (name && !m.name.toLowerCase().includes(name)) return false;
+    if (!rarityChecks[m.rarity]) return false;
+    if (minRatio != null && m.vosforPerPlat < minRatio) return false;
+    if (minVol != null && m.vol < minVol) return false;
+    return true;
+  });
+
+  vosforFiltered = sortData(vosforFiltered, vosforSort);
+  renderVosforTable();
+}
+
+function renderVosforTable() {
+  const tbody = document.getElementById('vosforBody');
+  const empty = document.getElementById('vosforEmpty');
+  if (vosforFiltered.length === 0 && vosforMods.length === 0) {
+    tbody.innerHTML = ''; empty.style.display = 'block';
+    document.getElementById('vosforResultCount').innerHTML = ''; return;
+  }
+  empty.style.display = 'none';
+  document.getElementById('vosforResultCount').innerHTML =
+    `Showing <span>${vosforFiltered.length}</span> of <span>${vosforMods.length}</span> entries`;
+
+  const rows = [];
+  vosforFiltered.forEach((m, i) => {
+    const rarityCls = m.rarity === 'Legendary' ? 'type-legendary' :
+                      m.rarity === 'Rare' ? 'type-rare-arc' :
+                      m.rarity === 'Uncommon' ? 'type-uncommon-arc' :
+                      m.rarity === 'Common' ? 'type-common-arc' : 'type-tektolyst';
+    const vCls = m.vosforPerPlat >= 15 ? 'vosfor-high' : m.vosforPerPlat >= 8 ? 'vosfor-mid' : 'vosfor-low';
+
+    rows.push(`<tr>
+      <td class="num rank-col">${i+1}</td>
+      <td>${esc(m.name)}</td>
+      <td><span class="type-badge ${rarityCls}">${m.rarity}</span></td>
+      <td>${m.rankLabel}</td>
+      <td class="num">${m.vosforReturn.toLocaleString()}</td>
+      <td class="num">${fmt(m.price)}</td>
+      <td class="num ${vCls}">${fmt(m.vosforPerPlat)}</td>
+      <td class="num">${m.vol}</td>
+      <td><span class="price-source">${m.priceSource}</span></td>
+      <td><a class="mod-link" href="https://warframe.market/items/${m.slug}" target="_blank">View</a></td>
+    </tr>`);
+  });
+  tbody.innerHTML = rows.join('');
+}
+
+// ═══════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════
 function fmt(val) {
@@ -788,20 +1092,24 @@ function esc(str) {
 // ═══════════════════════════════════════════
 attachSortHandlers('flipThead', 'flip');
 attachSortHandlers('endoThead', 'endo');
+attachSortHandlers('vosforThead', 'vosfor');
 
 (function init() {
   let cacheAge = Infinity;
   try {
-    const cached = localStorage.getItem('wf_mod_cache_v2');
+    const cached = localStorage.getItem('wf_mod_cache_v3');
     if (cached) {
       const data = JSON.parse(cached);
       flipMods = data.flipMods || [];
       endoMods = data.endoMods || [];
+      vosforMods = data.vosforMods || [];
       updateStatus(data.fetchedAt);
       applyFlipFilters();
       applyEndoFilters();
+      applyVosforFilters();
       updateSortHeaders('flip');
       updateSortHeaders('endo');
+      updateSortHeaders('vosfor');
       cacheAge = Date.now() - new Date(data.fetchedAt).getTime();
     }
   } catch (e) {}
