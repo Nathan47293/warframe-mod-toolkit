@@ -422,24 +422,26 @@
       <span>Recycle</span> = Dissolve cheap arcanes &rarr; buy more packs &rarr; repeat
       <br>
       <span>Total EV</span> = Direct Plat &divide; (1 &minus; Vosfor Recycled &divide; 200) &nbsp;&nbsp;|&nbsp;&nbsp;
-      <span>Opportunity</span> = EV &times; ln(Volume + 1) &mdash; balances value with liquidity
+      <span>ROI</span> = (EV &minus; Pack Cost) &divide; Pack Cost &times; 100
     </div>
   </div>
-  <div class="filters" id="packsFilters">
+  <div class="filters" id="packsFilters" style="flex-wrap:wrap">
     <div class="filter-group">
       <label>Dissolve Threshold</label>
-      <input type="number" id="packThreshold" placeholder="e.g. 50" value="" oninput="renderPacks()" style="width:110px">
-    </div>
-    <div style="font-size:11px; color:#667788; margin-left:4px;">
-      If max rank price &lt; this, dissolve for vosfor instead of selling
+      <input type="number" id="packThreshold" placeholder="e.g. 50" value="" oninput="renderPacks()" style="width:90px">
+      <span style="font-size:10px;color:#556">max rank price</span>
     </div>
     <div class="filter-sep"></div>
     <div class="filter-group">
-      <label>Sort by</label>
-      <select id="packSort" onchange="renderPacks()" style="background:#131a27;color:#e0e0e0;border:1px solid #2a3a4a;border-radius:6px;padding:5px 8px;font-size:12px">
-        <option value="opp">Opportunity</option>
-        <option value="ev">Expected Value</option>
-      </select>
+      <label>Min Volume</label>
+      <input type="number" id="packMinVol" placeholder="e.g. 5" value="" oninput="renderPacks()" style="width:70px">
+      <span style="font-size:10px;color:#556">48hr trades</span>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group">
+      <label>Vosfor/Plat</label>
+      <input type="number" id="packVosforPerPlat" placeholder="auto" value="" oninput="renderPacks()" style="width:80px" step="0.1">
+      <span style="font-size:10px;color:#556">cost basis</span>
     </div>
   </div>
   <div class="packs-grid" id="packsGrid">
@@ -1223,6 +1225,22 @@ function renderPacks() {
   if (!grid) return;
 
   const threshold = parseFloat(document.getElementById('packThreshold')?.value) || 0;
+  const minVol = parseFloat(document.getElementById('packMinVol')?.value) || 0;
+
+  // Compute default vosfor/plat from median of top 5 in vosfor dissolve tab
+  let defaultVPP = 0;
+  if (vosforMods.length > 0) {
+    const sorted = [...vosforMods].sort((a, b) => (b.vosforPerPlat || 0) - (a.vosforPerPlat || 0));
+    const top5 = sorted.slice(0, 5).map(m => m.vosforPerPlat);
+    top5.sort((a, b) => a - b);
+    defaultVPP = top5.length >= 5 ? top5[2] : top5[Math.floor(top5.length / 2)] || 0;
+  }
+  const vppInput = parseFloat(document.getElementById('packVosforPerPlat')?.value);
+  const vosforPerPlat = (vppInput > 0) ? vppInput : defaultVPP;
+  // Set placeholder to show the default
+  const vppEl = document.getElementById('packVosforPerPlat');
+  if (vppEl && !vppInput) vppEl.placeholder = defaultVPP.toFixed(1);
+  const packCostPlat = vosforPerPlat > 0 ? 200 / vosforPerPlat : 0;
 
   // Build maps: slug -> max rank price, slug -> unit price, slug -> base vosfor, slug -> max rank volume
   const arcaneMaxPrice = {};
@@ -1268,7 +1286,6 @@ function renderPacks() {
     // Per-arcane expected plat, vosfor, and opportunity
     let evPlatPerArcane = 0;
     let evVosforPerArcane = 0;
-    let evOppPerArcane = 0;
     const arcaneRows = []; // individual arcane rows for detailed view
 
     for (const rarity of rarityOrder) {
@@ -1288,7 +1305,7 @@ function renderPacks() {
         if (unitPrice == null) continue;
         count++;
 
-        const dissolved = threshold > 0 && maxPrice < threshold;
+        const dissolved = (threshold > 0 && maxPrice < threshold) || (minVol > 0 && vol < minVol);
         if (dissolved) {
           totalVosfor += baseVosfor;
         } else {
@@ -1307,15 +1324,6 @@ function renderPacks() {
       evPlatPerArcane += perArcaneChance * totalPlat;
       evVosforPerArcane += perArcaneChance * totalVosfor;
 
-      // Opportunity: volume-weighted plat contribution
-      let oppContrib = 0;
-      for (const a of arcaneDetails) {
-        if (!a.dissolved) {
-          oppContrib += a.unitPrice * Math.log(a.vol + 1);
-        }
-      }
-      evOppPerArcane += perArcaneChance * oppContrib;
-
       // Sort arcanes within tier by name
       arcaneDetails.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -1333,17 +1341,12 @@ function renderPacks() {
     const r = recycledVosfor / 200;
     const totalEV = r < 1 ? directPlat / (1 - r) : directPlat;
     const recycledPlat = totalEV - directPlat;
-    const oppScore = evOppPerArcane * 3;
+    const roi = packCostPlat > 0 ? ((totalEV - packCostPlat) / packCostPlat) * 100 : 0;
 
-    packResults.push({ name: collName, totalEV, directPlat, recycledPlat, recycledVosfor, ratio: r, oppScore, arcaneRows });
+    packResults.push({ name: collName, totalEV, directPlat, recycledPlat, recycledVosfor, ratio: r, roi, arcaneRows });
   }
 
-  const sortBy = document.getElementById('packSort')?.value || 'opp';
-  if (sortBy === 'opp') {
-    packResults.sort((a, b) => b.oppScore - a.oppScore);
-  } else {
-    packResults.sort((a, b) => b.totalEV - a.totalEV);
-  }
+  packResults.sort((a, b) => b.totalEV - a.totalEV);
 
   if (packResults.length === 0) {
     grid.innerHTML = '<div class="empty-state"><h2>No data yet</h2><p>Click "Fetch Data" to pull live prices from warframe.market</p></div>';
@@ -1388,7 +1391,14 @@ function renderPacks() {
         </div>`
       : '';
 
-    const oppColor = p.oppScore >= 50 ? '#4ade80' : p.oppScore >= 20 ? '#fbbf24' : '#f87171';
+    const roiColor = p.roi >= 200 ? '#4ade80' : p.roi >= 50 ? '#fbbf24' : '#f87171';
+    const roiDisplay = packCostPlat > 0
+      ? `<div>
+          <div class="pack-ev" style="color:${roiColor};font-size:22px">${p.roi.toFixed(0)}%</div>
+          <div class="pack-ev-label">ROI</div>
+        </div>` : '';
+    const costNote = packCostPlat > 0
+      ? `<div style="font-size:11px;color:#556;margin-top:2px">Pack cost: ${packCostPlat.toFixed(1)}p at ${vosforPerPlat.toFixed(1)} v/p</div>` : '';
 
     return `<div class="pack-card">
       <div class="pack-card-title">${esc(p.name)} Collection</div>
@@ -1398,12 +1408,10 @@ function renderPacks() {
           <div class="pack-ev" style="color:${evColor}">${p.totalEV.toFixed(1)}p</div>
           <div class="pack-ev-label">Expected Value</div>
         </div>
-        <div>
-          <div class="pack-ev" style="color:${oppColor};font-size:22px">${p.oppScore.toFixed(0)}</div>
-          <div class="pack-ev-label">Opportunity</div>
-        </div>
+        ${roiDisplay}
       </div>
       ${evBreakdown}
+      ${costNote}
       <div class="pack-arcane-list" style="margin-top:10px">${tierSections}</div>
     </div>`;
   });
