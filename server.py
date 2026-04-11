@@ -26,7 +26,7 @@ class FlipperHandler(http.server.SimpleHTTPRequestHandler):
             self.proxy_api()
             return
         if self.path == '/':
-            self.path = '/warframe_mod_flipper.html'
+            self.path = '/warframe_toolkit.html'
         super().do_GET()
 
     def proxy_api(self):

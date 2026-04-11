@@ -70,7 +70,7 @@ Each arcane has a base vosfor value at R0. Max rank multiplier is ×21 for R5 ar
 |------|-------------|
 | `run_flipper.bat` | Windows launcher — double-click to start |
 | `server.py` | Local Python server that proxies warframe.market API |
-| `warframe_mod_flipper.html` | The app UI (HTML/CSS/JS) |
+| `warframe_toolkit.html` | The app UI (HTML/CSS/JS) |
 
 ## Requirements
 
