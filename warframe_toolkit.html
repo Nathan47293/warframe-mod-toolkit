@@ -314,7 +314,7 @@
     <div class="formula-text">
       <span>Flip Profit</span> = Sell SMA &minus; Buy SMA &nbsp;&nbsp;|&nbsp;&nbsp;
       <span>Plat/1k Endo</span> = Flip Profit &divide; Endo Cost &times; 1000 &nbsp;&nbsp;|&nbsp;&nbsp;
-      <span>Value Score</span> = 0.6 &times; Plat/1k Endo rank + 0.4 &times; min(Volume/42, 1) &times; 100
+      <span>Value Score</span> = 0.6 &times; Plat/1k Endo rank + 0.4 &times; min(Volume/48, 1) &times; 100
       <br>
       <span>Endo to R10:</span> Primed/Archon 40,920 &nbsp;|&nbsp; Galv/Gold 30,690 &nbsp;|&nbsp; Silver 20,460 &nbsp;|&nbsp; Bronze 10,230
       <br>
@@ -1103,8 +1103,8 @@ function computeValueScores(mods) {
     return ranks;
   };
   const endoRanks = rank(mods.map(m => m.platPerEndo || 0));
-  // Volume as raw 0–1 score, capped at 42 (1 trade/hr avg over 48hrs)
-  const volScores = mods.map(m => Math.min((m.maxVol || 0) / 42, 1));
+  // Volume as raw 0–1 score, capped at 48 (1 trade/hr avg over 48hrs)
+  const volScores = mods.map(m => Math.min((m.maxVol || 0) / 48, 1));
   for (let i = 0; i < n; i++) {
     mods[i].valueScore = Math.round((endoRanks[i] * 0.6 + volScores[i] * 0.4) * 100 * 10) / 10;
   }
