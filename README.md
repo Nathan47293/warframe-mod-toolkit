@@ -1,11 +1,13 @@
 # Warframe Toolkit
 
-A zero-dependency local web app that fetches live price data from [warframe.market](https://warframe.market) to help you make smarter mod and arcane trading decisions in Warframe.
+A static web app that fetches live price data from [warframe.market](https://warframe.market) to help make smarter mod and arcane trading decisions in Warframe.
+
+Hosted on GitHub Pages with a Cloudflare Worker handling the warframe.market CORS proxy. No install — just bookmark the URL.
 
 ## Tools
 
 ### Mod Flipper
-Find the most profitable Rank 10 mods to flip (buy at R0, rank up with endo, sell at R10). Mods are classified into 6 types matching the in-game API rarity labels: **Common**, **Uncommon**, **Rare**, **Galvanized**, **Archon**, **Primed**. Each mod row shows flip profit, plat-per-1k-endo (true ROI on your endo investment), a composite **Value Score**, and 48-hour R10 trade volume. Includes per-mod **Sim R10** input that calculates a hypothetical **Sim Plat/1k Endo** if you sold at that R10 price.
+Find the most profitable Rank 10 mods to flip (buy at R0, rank up with endo, sell at R10). Mods are classified into 6 types matching the in-game API rarity labels: **Common**, **Uncommon**, **Rare**, **Galvanized**, **Archon**, **Primed**. Each row shows flip profit, plat-per-1k-endo (true ROI on your endo investment), a composite **Value Score**, and 48-hour R10 trade volume. Includes per-mod **Sim R10** input that calculates a hypothetical **Sim Plat/1k Endo** if you sold at that R10 price.
 
 Filter inputs sit directly under each numeric column header (`Sell (R10)`, `Flip Profit`, `Plat/1k Endo`, `Value Score`, `R10 Volume`) so each input is visually tied to its column. The Type column sorts in chip order (Common → Primed) instead of alphabetical. Archon and Primed are unchecked by default — those mods cost 1,000,000 credits each to obtain (transmute fee), so they rarely flip profitably.
 
@@ -64,51 +66,6 @@ Each arcane has a base vosfor value at R0. Max rank multiplier is ×21 for R5 ar
 
 9 collections available for 200 vosfor each. Each has rarity-grouped arcane contents with empirically verified drop rates (Ostron and Solaris use corrected rates that differ from official drop tables). Pack contents were cross-checked against in-game pack screenshots.
 
-## Architecture
-
-**Zero dependencies.** The entire app is a single HTML file (~1,670 lines) with inline CSS and vanilla JavaScript, plus a tiny Python proxy server. No npm, no frameworks, no build step.
-
-- `warframe_toolkit.html` — the complete app (UI + logic)
-- `server.py` — Python CORS proxy (~80 lines, standard library only)
-- `run_toolkit.bat` — Windows launcher
-
-### Data Flow
-
-1. Browser requests `/api/v2/items` → Python proxy forwards to warframe.market → returns full item catalog
-2. Browser filters to ~132 rank-10 mods + ~162 arcanes (peculiar mods excluded)
-3. Parallel fetch of `/api/v1/items/{slug}/statistics` for each item (3 workers, 500ms stagger)
-4. 48-hour closed trade stats parsed: SMA preferred, fallback to weighted avg or avg price
-5. Arcane name lookup persisted in cache so unpriced arcanes still display readable names
-6. Results cached in localStorage (24-hour freshness), auto-fetches if stale
-
-### Rate Limiting
-
-- 3 concurrent workers with 500ms delay between requests
-- Exponential backoff on HTTP 429: 2s → 4s → 8s, up to 3 retries
-- Errors counted but non-blocking — partial data is still rendered
-
-### UI
-
-- **Collapsible sidebar** — toggle button (chevron) in the header collapses to icons-only; state persists in localStorage
-- **Per-column filter inputs** — numeric `min` filters live directly under their column headers in Mod Flipper, Endo Dissolve, and Vosfor Dissolve tabs
-- **Custom sort orders** — Type/Tier/Rarity columns sort in chip order (left-to-right ascending) instead of alphabetical
-- **Sticky table headers** — column headers stay visible while scrolling
-
-## Quick Start
-
-The app runs in two modes — **local** (Python proxy, offline-capable) or **hosted** (GitHub Pages + Cloudflare Worker, bookmarkable URL). The HTML auto-detects which mode it's in based on the hostname.
-
-### Local
-
-1. Make sure [Python 3](https://www.python.org/downloads/) is installed
-2. Double-click `run_toolkit.bat` (or run `python server.py` from a terminal)
-3. The app opens automatically at `http://localhost:8777`
-4. Click **Fetch Data** in the sidebar — all tabs populate from a single fetch (~2-3 min)
-
-### Hosted
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the one-time setup (Cloudflare Worker + GitHub Pages, ~10 min, free tier). After that the app is just a bookmark — no Python, no install.
-
 ## Color Coding
 
 ### Mod Flipper
@@ -136,7 +93,41 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the one-time setup (Cloudflare Worker + G
 
 All colored metrics round to their displayed precision before threshold comparison, so a value displayed as `2.50` reliably colors green when the threshold is `2.5`.
 
-## Requirements
+## Architecture
 
-- Python 3.6+ (no pip packages needed)
-- A web browser (modern enough to support CSS `:has()` — Chrome 105+, Firefox 121+, Safari 15.4+)
+Three files in the repo:
+
+- `index.html` — the entire app (UI + logic, ~1,670 lines, vanilla JS, no build step)
+- `cloudflare-worker.js` — source for the Cloudflare Worker that proxies warframe.market with a path whitelist and 5-minute edge caching
+- `DEPLOYMENT.md` — one-time setup guide
+
+### Data Flow
+
+1. Browser fetches `<API_BASE>/v2/items` from the Cloudflare Worker → Worker forwards to warframe.market → returns full item catalog
+2. Browser filters to ~132 rank-10 mods + ~162 arcanes (peculiar mods excluded)
+3. Parallel fetch of `<API_BASE>/v1/items/{slug}/statistics` for each item (3 workers, 500ms stagger)
+4. 48-hour closed trade stats parsed: SMA preferred, fallback to weighted avg or avg price
+5. Arcane name lookup persisted in cache so unpriced arcanes still display readable names
+6. Results cached in localStorage (24-hour freshness), auto-fetches if stale
+
+### Rate Limiting
+
+- 3 concurrent workers with 500ms delay between requests
+- Exponential backoff on HTTP 429: 2s → 4s → 8s, up to 3 retries
+- Worker caches responses for 5 minutes at the edge, so repeat fetches within the window don't re-hit warframe.market
+- Errors counted but non-blocking — partial data is still rendered
+
+### UI
+
+- **Collapsible sidebar** — toggle button (chevron) in the header collapses to icons-only; state persists in localStorage
+- **Per-column filter inputs** — numeric `min` filters live directly under their column headers in Mod Flipper, Endo Dissolve, and Vosfor Dissolve tabs
+- **Custom sort orders** — Type/Tier/Rarity columns sort in chip order (left-to-right ascending) instead of alphabetical
+- **Sticky table headers** — column headers stay visible while scrolling
+
+## Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for one-time setup (Cloudflare Worker + GitHub Pages, ~10 min, free tier on both).
+
+## Browser Requirements
+
+Modern enough to support CSS `:has()` — Chrome 105+, Firefox 121+, Safari 15.4+.
