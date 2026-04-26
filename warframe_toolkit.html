@@ -554,6 +554,16 @@
 
 <script>
 // ═══════════════════════════════════════════
+// API ENDPOINT
+// ═══════════════════════════════════════════
+// Local dev goes through server.py at /api/...
+// Hosted (GitHub Pages) goes through a Cloudflare Worker — replace the URL
+// below with yours after deploying cloudflare-worker.js. See DEPLOYMENT.md.
+const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? '/api'
+  : 'https://wf-toolkit-proxy.nathanielayoub567.workers.dev/api';
+
+// ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
 let flipMods = [];
@@ -787,7 +797,7 @@ async function startFetch() {
   updateProgress(0, 'Fetching item list...');
 
   try {
-    const itemsResp = await fetch('/api/v2/items');
+    const itemsResp = await fetch(`${API_BASE}/v2/items`);
     const itemsJson = await itemsResp.json();
     const items = itemsJson.data || [];
 
@@ -819,7 +829,7 @@ async function startFetch() {
       async function worker(list) {
         for (const item of list) {
           try {
-            const resp = await fetchWithRetry(`/api/v1/items/${item.slug}/statistics`);
+            const resp = await fetchWithRetry(`${API_BASE}/v1/items/${item.slug}/statistics`);
             if (!resp.ok) { errors++; completed++; continue; }
             const json = await resp.json();
             const stats48 = json.payload?.statistics_closed?.['48hours'] || [];
@@ -880,7 +890,7 @@ async function startFetch() {
       async function worker(list) {
         for (const item of list) {
           try {
-            const resp = await fetchWithRetry(`/api/v1/items/${item.slug}/statistics`);
+            const resp = await fetchWithRetry(`${API_BASE}/v1/items/${item.slug}/statistics`);
             if (!resp.ok) { errors++; completed++; continue; }
             const json = await resp.json();
             const stats48 = json.payload?.statistics_closed?.['48hours'] || [];

@@ -96,10 +96,18 @@ Each arcane has a base vosfor value at R0. Max rank multiplier is ×21 for R5 ar
 
 ## Quick Start
 
+The app runs in two modes — **local** (Python proxy, offline-capable) or **hosted** (GitHub Pages + Cloudflare Worker, bookmarkable URL). The HTML auto-detects which mode it's in based on the hostname.
+
+### Local
+
 1. Make sure [Python 3](https://www.python.org/downloads/) is installed
 2. Double-click `run_toolkit.bat` (or run `python server.py` from a terminal)
 3. The app opens automatically at `http://localhost:8777`
 4. Click **Fetch Data** in the sidebar — all tabs populate from a single fetch (~2-3 min)
+
+### Hosted
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the one-time setup (Cloudflare Worker + GitHub Pages, ~10 min, free tier). After that the app is just a bookmark — no Python, no install.
 
 ## Color Coding
 
